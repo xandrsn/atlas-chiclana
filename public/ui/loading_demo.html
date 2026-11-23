@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pantalla de carga (demo)</title>
+<style>html, body { margin: 0; height: 100%; background: #1d2230; }</style>
+</head>
+<body>
+<!-- /v2/ui/loading_demo.html   ?p=0.4 fixes the progress (screenshots); otherwise it fakes a load and hides at 100 % (?stay keeps it) -->
+<script type="module">
+import { showLoading, setProgress, hideLoading } from './loading.js';
+const qs = new URLSearchParams(location.search);
+showLoading();
+if (qs.has('p')) setProgress(+qs.get('p'), 'Cargando celdas… 12 listas · 4 en camino');
+else {
+  const steps = ['Leyendo configuración…', 'Cargando índice de celdas…', 'Cargando celdas…', 'Colocando farolas…', 'Listo'];
+  let p = 0; const t = setInterval(() => {
+    p = Math.min(1, p + 0.01 + Math.random() * 0.02); setProgress(p, steps[Math.min(steps.length - 1, Math.floor(p * (steps.length - 1)))]);
+    if (p >= 1) { clearInterval(t); if (!qs.has('stay')) setTimeout(hideLoading, 800); }
+  }, 120);
+}
+window.__demo = true;
+</script>
+</body>
+</html>

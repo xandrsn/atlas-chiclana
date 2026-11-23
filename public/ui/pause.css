@@ -1,0 +1,20 @@
+/* Pause menu (public/v2/ui/pause.js). Same palette as the loading screen; system fonts only. */
+.v2p { position: fixed; inset: 0; z-index: 15; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(20, 18, 34, .55); font: 600 14px/1.45 Verdana, Geneva, sans-serif; color: #fbf6ec; cursor: default; }
+.v2p[hidden] { display: none; }
+.v2p-box { width: min(560px, 100%); max-height: 100%; overflow: auto; box-sizing: border-box; padding: 18px 22px 22px; background: #22223b; box-shadow: 0 6px 0 #c8553d, 0 12px 30px rgba(0, 0, 0, .45); }
+.v2p h2 { margin: 0 0 12px; font: 900 34px/1 "Arial Black", Impact, sans-serif; text-transform: uppercase; color: #f2c14e; text-shadow: 3px 3px 0 #c8553d; }
+.v2p-main { display: grid; gap: 10px; }
+.v2p button, .v2p select { font: inherit; color: inherit; background: #3a3456; border: 2px solid #fbf6ec; padding: 8px 12px; cursor: pointer; }
+.v2p button:hover, .v2p button:focus-visible, .v2p select:focus-visible { background: #c8553d; outline: none; }
+.v2p .v2p-go { background: #f2c14e; color: #22223b; font-size: 17px; }
+.v2p label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.v2p input[type=range] { flex: 1; max-width: 55%; accent-color: #f2c14e; }
+.v2p-chk { justify-content: flex-start !important; }
+.v2p-off { opacity: .55; }
+.v2p-help { margin-top: 14px; }
+.v2p-help table { width: 100%; border-collapse: collapse; font-weight: 400; font-size: 13px; }
+.v2p-help td { padding: 4px 6px; border-top: 1px solid #3a3456; vertical-align: top; }
+.v2p-help td:first-child { white-space: nowrap; color: #f2c14e; font-weight: 600; }
+.v2p-hint { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 5; padding: 4px 10px; background: rgba(34, 34, 59, .75); color: #fbf6ec; font: 12px/1.4 Verdana, sans-serif; pointer-events: none; }
+.v2p-hint[hidden] { display: none; }
+.v2p-ev { display: grid; gap: 6px; border: 2px solid #3a3456; padding: 6px 10px; } .v2p-ev summary { cursor: pointer; color: #f2c14e; }
