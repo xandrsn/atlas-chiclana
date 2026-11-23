@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ATLAS · Chiclana</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1520; font: 13px/1.4 system-ui, sans-serif; color: #e8f0f7; }
+  canvas#gl { display: block; width: 100vw; height: 100vh; }
+  .panel { position: fixed; background: rgba(8, 16, 26, .62); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 10px 12px; }
+  #hud { left: 12px; top: 12px; min-width: 250px; font-variant-numeric: tabular-nums; }
+  #hud b { font-size: 22px; font-weight: 600; }
+  #hud .row { display: flex; justify-content: space-between; gap: 16px; color: #b7c7d6; }
+  #hud .row span:last-child { color: #fff; }
+  #help { left: 12px; bottom: 12px; color: #b7c7d6; line-height: 1.7; }
+  #help kbd { background: rgba(255,255,255,.14); border-radius: 4px; padding: 0 5px; color: #fff; font: inherit; }
+  #mini { right: 12px; bottom: 150px; padding: 6px; }
+  #veh { right: 12px; bottom: 12px; display: flex; gap: 6px; align-items: flex-start; padding: 6px; }
+  #veh button { font: inherit; cursor: pointer; color: #e8f0f7; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); border-radius: 8px; }
+  #veh button:hover { background: rgba(255,255,255,.18); } #veh button.on { background: #f2b84b; color: #111; border-color: #f2b84b; }
+  #gear { width: 34px; height: 34px; font-size: 18px !important; }
+  #vehGrid { display: grid; grid-template-columns: repeat(5, 54px); gap: 5px; }
+  #vehGrid button { height: 48px; padding: 2px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+  #vehGrid span { font-size: 20px; } #vehGrid small { font-size: 9.5px; opacity: .85; }
+  #hintX { float: right; margin-left: 10px; cursor: pointer; opacity: .6; } #hintX:hover { opacity: 1; }
+  #mini canvas { display: block; border-radius: 6px; }
+  #goto { left: 50%; top: 12px; transform: translateX(-50%); display: none; width: 340px; }
+  #goto input { width: 100%; box-sizing: border-box; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.25); border-radius: 6px; color: #fff; padding: 7px 9px; font: inherit; font-size: 14px; }
+  #gotoSug div { padding: 5px 9px; cursor: pointer; font-size: 13px; border-radius: 4px; display: flex; justify-content: space-between; gap: 8px; } #gotoSug div.sel, #gotoSug div:hover { background: rgba(255,255,255,.16); } #gotoSug i { font-style: normal; color: #9fb4c6; font-size: 11px; white-space: nowrap; } #gotoSug { margin-top: 4px; max-height: 260px; overflow: auto; }
+  #goto small { display: block; margin-top: 6px; color: #b7c7d6; min-height: 1.4em; } #goto small.err { color: #ff9d8f; }
+  #credit { right: 12px; top: 12px; font-size: 11px; color: #9fb2c4; max-width: 260px; text-align: right; }
+  #loader { position: fixed; inset: 0; display: grid; place-content: center; gap: 14px; text-align: center; background: #0b1520; transition: opacity .6s; z-index: 10; }
+  #loader h1 { margin: 0; font-weight: 600; font-size: 26px; }
+  #bar { width: min(420px, 80vw); height: 6px; background: #1c2b3a; border-radius: 3px; overflow: hidden; }
+  #bar i { display: block; height: 100%; width: 0; background: #f2b84b; transition: width .2s; }
+  #status { color: #8fa4b8; min-height: 1.4em; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div id="hud" class="panel">
+  <div id="mode" style="color:#f2b84b;font-weight:600">—</div>
+  <div id="street" style="font-size:16px;font-weight:600;margin-top:2px;max-width:260px">—</div>
+  <div id="area" style="color:#9fb2c4;font-size:12px;margin-bottom:4px"></div>
+  <div><b id="spd">0</b> <span id="spdU">km/h</span></div>
+  <div class="row"><span>Altitud</span><span id="alt">0 m</span></div>
+  <div class="row"><span>Posición</span><span id="pos">—</span></div>
+  <div class="row"><span>Terreno</span><span id="lod">—</span></div>
+  <div class="row"><span>Edificios LOD</span><span id="bld">—</span></div>
+  <div class="row"><span>Gráficos</span><span id="gfx">—</span></div>
+  <div class="row"><span>FPS</span><span id="fps">—</span></div>
+</div>
+
+<div id="goto" class="panel">
+  <input id="gotoIn" list="streetList" placeholder="Calle y número (Alava 10) o un sitio (Bar Manolo, ayuntamiento…)" autocomplete="off" spellcheck="false">
+  <datalist id="streetList"></datalist>
+  <div id="gotoSug"></div>
+  <small id="gotoMsg">Dirección exacta del Catastro o bares, restaurantes, colegios, hoteles… · ↑↓ Enter · Esc cierra</small>
+</div>
+
+<div id="help" class="panel"></div>
+
+<div id="mini" class="panel"><canvas id="minimap" width="240" height="200"></canvas></div>
+<div id="credit" class="panel">Ortofoto PNOA © IGN (CC BY 4.0) · Edificios: © Dirección General del Catastro (CC BY 4.0) · Relieve: MDT05 © IGN/CNIG (CC BY 4.0), AWS Terrain Tiles · Límites y calles: © OpenStreetMap contributors (ODbL)</div>
+
+<div id="madeby" class="panel">Made by <a href="https://charlieandersen.vercel.app" target="_blank" rel="noopener">Charlie Andersen ↗</a> · <a href="https://github.com/xandrsn/atlas-chiclana" target="_blank" rel="noopener">código</a> · <a href="https://github.com/xandrsn/atlas-generator" target="_blank" rel="noopener">genera tu mapa ↗</a></div>
+
+<div id="loader">
+  <h1>Chiclana de la Frontera</h1>
+  <div id="bar"><i></i></div>
+  <div id="status">Iniciando…</div>
+</div>
+
+<script>
+// Web build: no Node server. Data comes from the pinned data repo, PNOA tiles straight from IGN (CORS *), street names are off (no server proxy).
+(() => {
+  const DATA = 'https://raw.githubusercontent.com/xandrsn/atlas-chiclana-data/v1/data/';
+  const IGN = 'https://www.ign.es/wmts/pnoa-ma?request=getTile&service=WMTS&version=1.0.0&layer=OI.OrthoimageCoverage&style=default&format=image/jpeg&tilematrixset=GoogleMapsCompatible';
+  const f0 = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    const u = typeof input === 'string' ? input : (input && input.url) || '', ms = u.match(/^/tiles/(ortho|dem)/(d+)/(d+)/(d+).(jpg|png)$/);
+    if (u.startsWith('/data/')) return f0(DATA + u.slice(6), init);
+    if (u.startsWith('/api/street')) return Promise.resolve(new Response('', { status: 404 }));   // the UI treats this as "no street": no request leaves the page
+    if (ms && ms[1] === 'ortho') return f0(`${IGN}&tilematrix=${ms[2]}&tilerow=${ms[4]}&tilecol=${ms[3]}`, init);
+    if (ms) return f0(`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${ms[2]}/${ms[3]}/${ms[4]}.png`, init);
+    return f0(input, init);
+  };
+})();
+</script>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+</script>
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>
