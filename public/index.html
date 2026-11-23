@@ -14,7 +14,7 @@
 <script>
 // Web build: no Node server. Data comes from the pinned data repo (tag v2), PNOA tiles straight from IGN (CORS *); /api (street names, lobby) is off.
 (() => {
-  const DATA = 'https://raw.githubusercontent.com/xandrsn/atlas-chiclana-data/v2/data/';
+  const DATA = 'https://raw.githubusercontent.com/xandrsn/atlas-chiclana-data/v3/data/';
   const IGN = 'https://www.ign.es/wmts/pnoa-ma?request=getTile&service=WMTS&version=1.0.0&layer=OI.OrthoimageCoverage&style=default&format=image/jpeg&tilematrixset=GoogleMapsCompatible';
   const f0 = window.fetch.bind(window);
   window.fetch = (input, init) => {

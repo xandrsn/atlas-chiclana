@@ -14,7 +14,7 @@ The local version runs with `npm start` (a small Node server). The web build run
 
 | Feature | Web build |
 |---|---|
-| Map data | Loaded from `raw.githubusercontent.com/xandrsn/atlas-chiclana-data/v2/data/` |
+| Map data | Loaded from `raw.githubusercontent.com/xandrsn/atlas-chiclana-data/v3/data/` |
 | Orthophoto (PNOA) | Loaded straight from the IGN WMTS (it sends `Access-Control-Allow-Origin: *`) |
 | Terrain | Baked into the v2 cells (IGN MDT05) |
 | `/api/*` (street names, lobby) | Off: answered with 404 by the fetch shim in `public/index.html` |

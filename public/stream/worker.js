@@ -6,7 +6,7 @@ const MAGIC = 0x324c4543;
 self.onmessage = async ({ data: { id, url, cell, S, trees: tr, opt } }) => {
   if (tr) { const g = buildTrees(tr, opt); self.postMessage({ id, treeMesh: g }, [g.pos.buffer, g.col.buffer]); return; }   // tree mesh of a live cell (stream/cells.js: only near the player)
   try {
-    const r = await fetch(url.startsWith('/data/') ? 'https://raw.githubusercontent.com/xandrsn/atlas-chiclana-data/v2/data/' + url.slice(6) : url); if (!r.ok) throw new Error(url + ' ' + r.status);
+    const r = await fetch(url.startsWith('/data/') ? 'https://raw.githubusercontent.com/xandrsn/atlas-chiclana-data/v3/data/' + url.slice(6) : url); if (!r.ok) throw new Error(url + ' ' + r.status);
     const buf = await r.arrayBuffer(), h = new Uint32Array(buf, 0, 16);
     if (h[0] !== MAGIC || h[1] !== 3) throw new Error(url + ': bad cell header (re-run scripts/bake_cells.mjs)');
     const [nV0, nI0, nV1, nI1, nT, N, nD, fl] = [h[4], h[5], h[6], h[7], h[8], h[9], h[10], h[11]], yOff = new Float32Array(buf, 48, 1)[0], qxz = h[13], qy = h[14];
