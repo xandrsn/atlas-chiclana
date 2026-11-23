@@ -10,7 +10,7 @@ Made by [Charlie Andersen](https://charlieandersen.vercel.app).
 
 ## What is different from the local version
 
-The full local game is `npm start` in the `chiclana-sandbox` project. The web build keeps the same client and drops the server:
+The local version runs with `npm start` (a small Node server). The web build keeps the same client and drops the server:
 
 | Feature | Web build |
 |---|---|
