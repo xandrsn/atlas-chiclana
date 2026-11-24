@@ -1,0 +1,38 @@
+{
+ "id": "vencejo-burbuja",
+ "make": "Robinson",
+ "model": "R44",
+ "archetype": "helicoptero",
+ "era": [
+  1993,
+  2008
+ ],
+ "kind": "heli",
+ "seats": 4,
+ "spawnWeight": 0,
+ "dims": {
+  "length": 11.66,
+  "width": 2.3,
+  "height": 3.27,
+  "rotor": 10.06,
+  "skidTrack": 2.18
+ },
+ "body": {
+  "type": "r44",
+  "second": "#2b3a52"
+ },
+ "flight": {
+  "maxSpeedKmh": 400,
+  "accel": 20,
+  "climb": 17,
+  "yawRate": 2.2,
+  "ceiling": 320
+ },
+ "palette": [
+  "#e0b020",
+  "#e9e9e4",
+  "#c42020",
+  "#1e5aa8",
+  "#3a6b45"
+ ]
+}

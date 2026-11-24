@@ -33,8 +33,8 @@ export function resolvePed(db, styleId, seed) {
 /** recipe -> rigged BufferGeometry (lod 0 near, 1 far) */
 /** joint heights / offsets of a recipe (model frame: y up, facing +z, left = +x); shared with the skeleton (peds/rig.js) */
 export function dims(p) {
-  const k = p.build.height / 1.76, w = p.build.width, z = p.build.stoop || 0, shY = 1.39 * k, n0 = shY + 0.04;
-  return { k, w, z, hipY: 0.9 * k, shY, elbowY: 1.1 * k, wristY: 0.84 * k, kneeY: 0.49 * k, ankY: 0.085, legX: 0.095 * w, armX: 0.2 * w + 0.045, n0, h0: n0 + 0.04, hz: z * 2.2 };
+  const k = p.build.height / 1.76, w = p.build.width, z = p.build.stoop || 0, shY = 1.42 * k, n0 = shY + 0.045;
+  return { k, w, z, hipY: 0.9 * k, shY, elbowY: 1.1 * k, wristY: 0.84 * k, kneeY: 0.49 * k, ankY: 0.085, legX: 0.095 * w, armX: 0.165 * w + 0.027, n0, h0: n0 + 0.045, hz: z * 2.2 };
 }
 
 /** skeleton joint positions of a recipe (peds/rig.js Rig.J) */

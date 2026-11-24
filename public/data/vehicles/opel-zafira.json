@@ -1,0 +1,85 @@
+{
+ "id": "opel-zafira",
+ "make": "Opel",
+ "model": "Zafira A",
+ "archetype": "monovolumen",
+ "era": [
+  1999,
+  2005
+ ],
+ "kind": "car",
+ "seats": 7,
+ "spawnWeight": 5,
+ "dims": {
+  "length": 4.32,
+  "width": 1.74,
+  "height": 1.63,
+  "wheelbase": 2.695,
+  "track": 1.49,
+  "wheelRadius": 0.31,
+  "wheelWidth": 0.195,
+  "groundClearance": 0.15
+ },
+ "body": {
+  "belt": 0.95,
+  "noseH": 0.76,
+  "tailH": 0.96,
+  "hood": 0.86,
+  "deck": 0.06,
+  "wsRake": 0.86,
+  "rearRake": 0.2,
+  "tumble": 0.13,
+  "windows": {
+   "from": 0.04,
+   "to": 0.95,
+   "panes": 3
+  }
+ },
+ "shape": {
+  "wsCurve": 0.92,
+  "crown": 0.02,
+  "lamp": {
+   "h": [
+    0.42,
+    0.95
+   ],
+   "w": 1.2
+  },
+  "tail": {
+   "h": [
+    0.55,
+    1.05
+   ],
+   "w": 0.6
+  }
+ },
+ "handling": {
+  "gears": 5,
+  "drive": "fwd",
+  "grip": 0.98,
+  "rearGrip": 0.93,
+  "driftFactor": 0.35,
+  "steerMaxDeg": 36,
+  "steerSpeedFalloff": 0.55,
+  "mass": 1390,
+  "powerKW": 74,
+  "maxSpeedKmh": 178,
+  "accel0to100": 13,
+  "brakeDecel": 7.4,
+  "comHeight": 0.59,
+  "suspension": {
+   "stiffness": 36140,
+   "damping": 3253,
+   "travel": 0.17,
+   "rollFactor": 0.85
+  }
+ },
+ "palette": [
+  "#c9ccce",
+  "#1d1f22",
+  "#2f5d9a",
+  "#e8e6e0",
+  "#8a1d24",
+  "#5c6f80"
+ ]
+}

@@ -12,8 +12,8 @@ import { Rig, Animator, SLOTS, NB, boneTexture, makeSkinMaterial } from './rig.j
 import { Builder, rng, pick } from '../lowpoly.js';
 import { inBox } from '../traffic/park_math.js';
 
-const K = 8, LOD0 = 40, G = 32, JOIN = 4;   // outfits; skinned-rig radius (m); spatial grid (m); max gap joining two ways (m)
-const ATTRS = ['position', 'normal', 'color', 'aPaint', 'aBone', 'aPivot'], SKIN = ['position', 'color', 'aPaint', 'skinIndex', 'skinWeight'];
+const K = 8, LOD0 = 30, NEAR = 24, G = 32, JOIN = 4;   // outfits; skinned-rig radius (m) and how many at most (each one costs the vertices of all K outfits); spatial grid (m); max gap joining two ways (m)
+const ATTRS = ['position', 'normal', 'color', 'aPaint', 'aBone', 'aPivot'], SKIN = ['position', 'normal', 'color', 'aPaint', 'skinIndex', 'skinWeight'];
 
 /** one geometry with K outfits (aModel = index) + a flat dark footprint under each; rigs: skinned (the footprint on the identity slot) */
 function crowdGeometry(recipes, lod, rigs) {
@@ -30,7 +30,9 @@ function crowdGeometry(recipes, lod, rigs) {
     parts.forEach((gs, m) => { for (const g of gs) { const a = g.attributes[name]; arr.set(a.array, o * w); if (name === 'position') model.fill(m, o, o + a.count); o += a.count; } });
     out.setAttribute(name, new THREE.BufferAttribute(arr, w));
   }
-  out.setAttribute('aModel', new THREE.BufferAttribute(model, 1)); out.computeBoundingSphere(); return out;
+  const index = []; let o = 0;
+  for (const g of parts.flat()) { const c = g.attributes.position.count, I = g.index?.array; for (let i = 0; i < (I ? I.length : c); i++) index.push(o + (I ? I[i] : i)); o += c; }
+  out.setIndex(index); out.setAttribute('aModel', new THREE.BufferAttribute(model, 1)); out.computeBoundingSphere(); return out;
 }
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 
@@ -82,6 +84,7 @@ export class Crowd {
       const g = this.walk(x, z, fy + 3), y = g && !g.blocked ? this.foot(x, z, g.y) : null; if (y == null || Math.abs(y - fy) > 12) continue;
       const m = Math.floor(this.r() * K), p = { wi, q, dir: q === nv - 1 ? -1 : q === 0 ? 1 : this.r() < 0.5 ? 1 : -1, s: 0, x, z, y, h: 0, rh: 0,
         v: 1.05 + 0.45 * this.r(), side: 0, side0: (this.r() - 0.5) * 0.8, sideT: 0, avoid: 0, act: null, an: null, m, col: new THREE.Color(pick(this.r, this.tops[m])), ph: this.r() * 6.28, wait: 0, stuck: 0, gait: 1 };
+      if (this.recipes[m].build.id === 'old') p.v *= 0.7;
       p.side = p.sideT = p.side0; this.seg(p); p.rh = p.h; return p;
     }
     return null;
@@ -178,7 +181,7 @@ export class Crowd {
     if (p.wait > 0) { p.wait -= dt; p.gait = Math.max(0, p.gait - dt * 3); return; }
     const fx = -Math.sin(p.rh), fz = -Math.cos(p.rh);
     for (const o of obstacles) { const dx = o.x - p.x, dz = o.z - p.z, al = dx * fx + dz * fz; if (al > 0 && al < o.r + 1.2 && Math.abs(dx * fz - dz * fx) < o.r + 0.5) { p.gait = Math.max(0, p.gait - dt * 4); return; } }
-    if (this.r() < dt * 0.02) p.wait = 2 + 4 * this.r();   // a pause every ~50 s: look at a shop window
+    if (this.r() < dt * 0.02) { p.wait = 2 + 6 * this.r(); p.fid = Math.floor(this.r() * 4); }   // a pause every ~50 s: look at a shop window
     p.gait = Math.min(p.act?.k === 'startle' ? 1.6 : 1, p.gait + dt * 2);   // startled: hurry
     const ds = p.sideT - p.side, side = p.side + Math.sign(ds) * Math.min(Math.abs(ds), dt * (p.act ? 3.5 : 0.9));   // sidestep: quick when startled
     const s = p.s + p.v * dt * p.gait, at = sd => { const x = p.ax + p.ux * s - p.uz * sd, z = p.az + p.uz * s + p.ux * sd; return [x, z, this.foot(x, z, p.y)]; };
@@ -202,16 +205,18 @@ export class Crowd {
     } else if (a?.k === 'stumble') { r.stumble(T, a.t / 0.75); key = 'stumble'; fade = 0.1; }
     else if (a?.k === 'startle' && a.t < 0.45) { T.set(r.key('startle')); key = 'startle'; fade = 0.1; }
     else {
-      const v = p.wait > 0 ? 0 : p.v * p.gait, A = v < 0.05 ? 0 : (0.22 + 0.07 * v) * Math.min(1, v / 0.8), run = Math.max(0, p.gait - 1);
+      const v = p.wait > 0 ? 0 : p.v * p.gait, A = v < 0.05 ? 0 : (0.22 + 0.07 * v) * Math.min(1, v / 0.8) * (p.stride ??= (0.93 + 0.14 * this.r()) * this.recipes[p.m].build.height / 1.76), run = Math.max(0, p.gait - 1);
       if (A > 0) p.sp = (p.sp ?? p.ph) + Math.PI * (0.6 - 0.2 * run) / A * v * dt;   // stride phase from the distance walked: feet stay planted
-      r.loco(T, { ph: p.sp ?? 0, A, walk: Math.min(1, p.gait), run, t: p.t }); key = 'loco';
+      r.loco(T, { ph: p.sp ?? 0, A, walk: Math.min(1, p.gait), run, t: p.t, seed: p.ph, fid: p.fid }); key = 'loco';
     }
     r.matrices(an.update(dt, key, fade), this.tex.image.data, k * SLOTS * 16);
   }
   write(focus, dt = 0) {
     const M = new THREE.Matrix4(), q = new THREE.Quaternion(), qt = new THREE.Quaternion(), ax = new THREE.Vector3(1, 0, 0), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1), v = new THREE.Vector3(), n = [0, 0];
+    for (const p of this.peds) p.d = Math.hypot(p.x - focus.x, p.z - focus.z);
+    this.peds.sort((a, b) => a.d - b.d);   // the closest people get the rig
     for (const p of this.peds) {
-      const near = Math.hypot(p.x - focus.x, p.z - focus.z) < LOD0, L = this.L[near ? 0 : 1], k = n[near ? 0 : 1]++;
+      const near = p.d < LOD0 && n[0] < NEAR, L = this.L[near ? 0 : 1], k = n[near ? 0 : 1]++;
       q.setFromAxisAngle(up, p.rh + Math.PI); if (p.ko && (!near || !p.ko.land)) q.multiply(qt.setFromAxisAngle(ax, p.tilt));   // flying (and far): tipped about the feet; near and down: the rig lies / gets up
       M.compose(v.set(p.x, p.y, p.z), q, one); M.toArray(L.im.instanceMatrix.array, k * 16);
       L.sel.array[k] = p.m + 1; L.im.setColorAt(k, p.col);

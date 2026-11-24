@@ -63,7 +63,7 @@ export class Cells {
     const d = c.data, S = this.S, g = new THREE.BufferGeometry(), t = m.treeMesh;
     g.setAttribute('position', new THREE.BufferAttribute(t.pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(t.col, 4, true));
     g.boundingSphere = new THREE.Sphere(new THREE.Vector3(S / 2 * d.qxz, ((t.y0 + t.y1) / 2 - d.yOff) * d.qy, S / 2 * d.qxz), Math.hypot(S / 2 + 8, S / 2 + 8, (t.y1 - t.y0) / 2) * Math.max(d.qxz, d.qy));
-    const mesh = new THREE.Mesh(g, this.mats.tree); mesh.position.set(c.i * S, d.yOff, c.j * S); mesh.scale.set(1 / d.qxz, 1 / d.qy, 1 / d.qxz); mesh.matrixAutoUpdate = false; mesh.updateMatrix();
+    const mesh = new THREE.Mesh(g, this.mats.tree); mesh.renderOrder = 1; /* its ground shadows blend over the world mesh */ mesh.position.set(c.i * S, d.yOff, c.j * S); mesh.scale.set(1 / d.qxz, 1 / d.qy, 1 / d.qxz); mesh.matrixAutoUpdate = false; mesh.updateMatrix();
     this.scene.add(mesh); c.tmesh = mesh; this.onTreeMesh?.(c); this.show(c); this.count();
   }
   dropTrees(c) { this.scene.remove(c.tmesh); c.tmesh.geometry.dispose(); c.tmesh = null; }

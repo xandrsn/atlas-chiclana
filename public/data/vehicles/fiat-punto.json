@@ -1,0 +1,86 @@
+{
+ "id": "fiat-punto",
+ "make": "Fiat",
+ "model": "Punto (188)",
+ "archetype": "compacto",
+ "era": [
+  1999,
+  2006
+ ],
+ "kind": "car",
+ "seats": 5,
+ "spawnWeight": 7,
+ "dims": {
+  "length": 3.84,
+  "width": 1.66,
+  "height": 1.48,
+  "wheelbase": 2.46,
+  "track": 1.42,
+  "wheelRadius": 0.29,
+  "wheelWidth": 0.185,
+  "groundClearance": 0.15
+ },
+ "body": {
+  "belt": 0.91,
+  "noseH": 0.7,
+  "tailH": 0.95,
+  "hood": 0.78,
+  "deck": 0.12,
+  "wsRake": 0.76,
+  "rearRake": 0.32,
+  "tumble": 0.15,
+  "windows": {
+   "from": 0.05,
+   "to": 0.95,
+   "panes": 2
+  }
+ },
+ "shape": {
+  "wsCurve": 0.92,
+  "crown": 0.025,
+  "flare": 0.01,
+  "lamp": {
+   "h": [
+    0.45,
+    0.98
+   ],
+   "w": 1.2
+  },
+  "tail": {
+   "h": [
+    0.9,
+    1.15
+   ],
+   "w": 0.55
+  }
+ },
+ "handling": {
+  "gears": 5,
+  "drive": "fwd",
+  "grip": 1,
+  "rearGrip": 0.95,
+  "driftFactor": 0.35,
+  "steerMaxDeg": 36,
+  "steerSpeedFalloff": 0.55,
+  "mass": 1030,
+  "powerKW": 59,
+  "maxSpeedKmh": 172,
+  "accel0to100": 12.9,
+  "brakeDecel": 8.2,
+  "comHeight": 0.54,
+  "suspension": {
+   "stiffness": 26780,
+   "damping": 2410,
+   "travel": 0.17,
+   "rollFactor": 0.7
+  }
+ },
+ "palette": [
+  "#e8e6e0",
+  "#b8262b",
+  "#d9c34a",
+  "#2f5d9a",
+  "#9aa1a6",
+  "#3d6b45"
+ ]
+}

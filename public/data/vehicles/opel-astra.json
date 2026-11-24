@@ -1,0 +1,86 @@
+{
+ "id": "opel-astra",
+ "make": "Opel",
+ "model": "Astra G",
+ "archetype": "compacto",
+ "era": [
+  1998,
+  2004
+ ],
+ "kind": "car",
+ "seats": 5,
+ "spawnWeight": 10,
+ "dims": {
+  "length": 4.11,
+  "width": 1.71,
+  "height": 1.425,
+  "wheelbase": 2.61,
+  "track": 1.48,
+  "wheelRadius": 0.305,
+  "wheelWidth": 0.195,
+  "groundClearance": 0.15
+ },
+ "body": {
+  "belt": 0.91,
+  "noseH": 0.71,
+  "tailH": 0.94,
+  "hood": 0.92,
+  "deck": 0.16,
+  "wsRake": 0.74,
+  "rearRake": 0.5,
+  "tumble": 0.15,
+  "windows": {
+   "from": 0.06,
+   "to": 0.95,
+   "panes": 2
+  }
+ },
+ "shape": {
+  "wsCurve": 0.95,
+  "crown": 0.02,
+  "flare": 0.01,
+  "lamp": {
+   "h": [
+    0.42,
+    0.95
+   ],
+   "w": 1.2
+  },
+  "tail": {
+   "h": [
+    0.5,
+    0.95
+   ],
+   "w": 0.75
+  }
+ },
+ "handling": {
+  "gears": 5,
+  "drive": "fwd",
+  "grip": 1,
+  "rearGrip": 0.95,
+  "driftFactor": 0.35,
+  "steerMaxDeg": 36,
+  "steerSpeedFalloff": 0.55,
+  "mass": 1130,
+  "powerKW": 74,
+  "maxSpeedKmh": 188,
+  "accel0to100": 11.5,
+  "brakeDecel": 8.2,
+  "comHeight": 0.52,
+  "suspension": {
+   "stiffness": 29380,
+   "damping": 2644,
+   "travel": 0.17,
+   "rollFactor": 0.7
+  }
+ },
+ "palette": [
+  "#c9ccce",
+  "#1d1f22",
+  "#2f5d9a",
+  "#e8e6e0",
+  "#8a1d24",
+  "#5c6f80"
+ ]
+}

@@ -8,17 +8,20 @@
   html, body { margin: 0; height: 100%; overflow: hidden; background: #c4d2dc; }
   canvas { display: block; width: 100%; height: 100%; }
   #clock { position: fixed; right: 10px; top: 10px; padding: 2px 8px; background: rgba(34, 34, 59, .75); color: #f2c14e; font: 700 16px/1.4 Verdana, sans-serif; font-variant-numeric: tabular-nums; }
+  #veh { position: fixed; right: 10px; top: 42px; padding: 2px 8px; background: rgba(34, 34, 59, .75); color: #fff; font: 700 13px/1.4 Verdana, sans-serif; }
+  #veh:empty { display: none; }
   #help { position: fixed; right: 10px; bottom: 10px; color: #fff; font: 12px/1.4 Verdana, sans-serif; text-shadow: 1px 1px 0 #000; }
   #credit { position: fixed; left: 10px; bottom: 10px; max-width: 46ch; color: #fff; font: 10px/1.4 Verdana, sans-serif; text-shadow: 1px 1px 0 #000; opacity: .75; z-index: 5; } #credit a { color: #f2c14e; }
 </style>
 <script>
-// Web build: no Node server. Data comes from the pinned data repo (tag v2), PNOA tiles straight from IGN (CORS *); /api (street names, lobby) is off.
+// Web build: no Node server. Data comes from the pinned data repo (tag v3), PNOA tiles straight from IGN (CORS *); /api (street names, lobby) is off.
 (() => {
   const DATA = 'https://raw.githubusercontent.com/xandrsn/atlas-chiclana-data/v3/data/';
   const IGN = 'https://www.ign.es/wmts/pnoa-ma?request=getTile&service=WMTS&version=1.0.0&layer=OI.OrthoimageCoverage&style=default&format=image/jpeg&tilematrixset=GoogleMapsCompatible';
   const f0 = window.fetch.bind(window);
   window.fetch = (input, init) => {
     const u = typeof input === 'string' ? input : (input && input.url) || '', ms = u.match(/^\/tiles\/(ortho|dem)\/(\d+)\/(\d+)\/(\d+)\.(jpg|png)$/);
+    if (u.startsWith('/data/vehicles/') || u === '/data/quality.json') return f0(u, init);   // these follow the client, not the data tag
     if (u.startsWith('/data/')) return f0(DATA + u.slice(6), init);
     if (u.startsWith('/api/')) return Promise.resolve(new Response('', { status: 404 }));
     if (ms && ms[1] === 'ortho') return f0(IGN + '&tilematrix=' + ms[2] + '&tilerow=' + ms[4] + '&tilecol=' + ms[3], init);
@@ -31,6 +34,7 @@
 <body>
 <canvas id="c"></canvas>
 <div id="clock" aria-label="Hora del juego"></div>
+<div id="veh" role="status" aria-label="Vehículo en uso"></div>
 <div id="help">WASD mover/conducir · Mayús correr · Espacio saltar/freno · F entrar/salir · ratón cámara · Esc pausa (controles) · V aérea · T +1 hora · F3 rendimiento</div>
 <div id="credit">Made by <a href="https://charlieandersen.vercel.app" target="_blank" rel="noopener">Charlie Andersen</a> · <a href="https://github.com/xandrsn/atlas-chiclana" target="_blank" rel="noopener">código</a> · <a href="https://github.com/xandrsn/atlas-generator" target="_blank" rel="noopener">genera tu mapa</a><br>Ortofoto PNOA © IGN (CC BY 4.0) · Edificios © Catastro (CC BY 4.0) · Relieve MDT05 © IGN/CNIG (CC BY 4.0) · Calles y límites © OpenStreetMap contributors (ODbL)</div>
 <script type="module" src="./boot.js"></script>

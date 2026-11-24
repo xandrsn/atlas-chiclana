@@ -1,0 +1,86 @@
+{
+ "id": "peugeot-206",
+ "make": "Peugeot",
+ "model": "206",
+ "archetype": "compacto",
+ "era": [
+  1998,
+  2006
+ ],
+ "kind": "car",
+ "seats": 5,
+ "spawnWeight": 11,
+ "dims": {
+  "length": 3.835,
+  "width": 1.65,
+  "height": 1.43,
+  "wheelbase": 2.44,
+  "track": 1.43,
+  "wheelRadius": 0.29,
+  "wheelWidth": 0.185,
+  "groundClearance": 0.15
+ },
+ "body": {
+  "belt": 0.91,
+  "noseH": 0.68,
+  "tailH": 0.94,
+  "hood": 0.8,
+  "deck": 0.14,
+  "wsRake": 0.78,
+  "rearRake": 0.4,
+  "tumble": 0.15,
+  "windows": {
+   "from": 0.06,
+   "to": 0.95,
+   "panes": 2
+  }
+ },
+ "shape": {
+  "wsCurve": 0.9,
+  "crown": 0.025,
+  "flare": 0.015,
+  "lamp": {
+   "h": [
+    0.4,
+    1
+   ],
+   "w": 1.35
+  },
+  "tail": {
+   "h": [
+    0.5,
+    0.95
+   ],
+   "w": 0.7
+  }
+ },
+ "handling": {
+  "gears": 5,
+  "drive": "fwd",
+  "grip": 1,
+  "rearGrip": 0.95,
+  "driftFactor": 0.35,
+  "steerMaxDeg": 36,
+  "steerSpeedFalloff": 0.55,
+  "mass": 1010,
+  "powerKW": 55,
+  "maxSpeedKmh": 170,
+  "accel0to100": 13.2,
+  "brakeDecel": 8.2,
+  "comHeight": 0.52,
+  "suspension": {
+   "stiffness": 26260,
+   "damping": 2363,
+   "travel": 0.17,
+   "rollFactor": 0.7
+  }
+ },
+ "palette": [
+  "#e8e6e0",
+  "#b8262b",
+  "#d9c34a",
+  "#2f5d9a",
+  "#9aa1a6",
+  "#3d6b45"
+ ]
+}

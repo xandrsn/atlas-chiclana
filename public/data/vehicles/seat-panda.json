@@ -1,0 +1,83 @@
+{
+ "id": "seat-panda",
+ "make": "SEAT",
+ "model": "Panda",
+ "archetype": "utilitario",
+ "era": [
+  1980,
+  1998
+ ],
+ "kind": "car",
+ "seats": 4,
+ "spawnWeight": 5,
+ "dims": {
+  "length": 3.475,
+  "width": 1.46,
+  "height": 1.445,
+  "wheelbase": 2.16,
+  "track": 1.25,
+  "wheelRadius": 0.265,
+  "wheelWidth": 0.15,
+  "groundClearance": 0.15
+ },
+ "body": {
+  "belt": 0.89,
+  "noseH": 0.75,
+  "tailH": 0.89,
+  "hood": 0.72,
+  "deck": 0.05,
+  "wsRake": 0.46,
+  "rearRake": 0.18,
+  "tumble": 0.09,
+  "windows": {
+   "from": 0.05,
+   "to": 0.95,
+   "panes": 2
+  }
+ },
+ "shape": {
+  "lamp": {
+   "h": [
+    0.5,
+    0.85
+   ],
+   "w": 0.85
+  },
+  "tail": {
+   "h": [
+    0.45,
+    0.8
+   ],
+   "w": 0.6
+  }
+ },
+ "handling": {
+  "gears": 4,
+  "drive": "fwd",
+  "grip": 0.9,
+  "rearGrip": 0.86,
+  "driftFactor": 0.35,
+  "steerMaxDeg": 36,
+  "steerSpeedFalloff": 0.55,
+  "mass": 700,
+  "powerKW": 30,
+  "maxSpeedKmh": 125,
+  "accel0to100": 23,
+  "brakeDecel": 6.5,
+  "comHeight": 0.53,
+  "suspension": {
+   "stiffness": 18200,
+   "damping": 1638,
+   "travel": 0.22,
+   "rollFactor": 1
+  }
+ },
+ "palette": [
+  "#e8e6e0",
+  "#b8262b",
+  "#d9c34a",
+  "#2f5d9a",
+  "#9aa1a6",
+  "#3d6b45"
+ ]
+}

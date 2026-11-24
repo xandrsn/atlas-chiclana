@@ -3,14 +3,18 @@
 import * as THREE from 'three';
 import { Cells } from './stream/cells.js';
 import { makeMaterials, makeSky, TimeCycle, blobShadow } from './render/world.js';
+import { SunShadows } from './render/shadow.js';
 import { Car, fixedStep } from './sim/car.js';
 import { Ground, groundFn, CAR, FOOT } from './sim/ground.js';
 import { onKey, onAction, setControls } from './input/keys.js';
 import { makePlay } from './sim/play.js';
+import { vehicleName } from './sim/vehicles.js';
 import { Pause, frameClock } from './ui/pause.js';
 import { Perf } from './ui/perf.js';
 import { showLoading, setProgress, hideLoading } from './ui/loading.js';
 import { mapPicker } from './ui/mappick.js';
+import { t, translate, onLang } from './ui/i18n.js';
+import { showTutorial, tutorialSeen } from './ui/tutorial.js';
 import { makeTransit, spawnFor } from './ui/transit.js';
 import { Crowd } from './peds/crowd.js';
 import { withWalls } from './sim/walls.js';
@@ -18,7 +22,7 @@ import { Events } from './events/events.js';
 
 THREE.ColorManagement.enabled = false;   // vertex colours are authored as display (sRGB) bytes and go straight to the screen
 const qs = new URLSearchParams(location.search), $ = id => document.getElementById(id);
-showLoading(); setProgress(0, 'Leyendo configuración…');
+showLoading(); translate(document.body); setProgress(0, t('Leyendo configuración…'));
 const get = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); });
 const [cfg, qual, tc, ctl, maps] = await Promise.all([get('/data/v2.json'), get('/data/quality.json'), get('/data/timecyc.json'), get('/data/controls.json'), get('/data/maps.json')]);
 setControls(ctl, () => document.pointerLockElement === $('c'));
@@ -26,8 +30,8 @@ let qKey = qs.get('q'); try { qKey ||= localStorage.getItem('v2.q'); } catch {} 
 for (const k in maps.maps) if (maps.enabled && !maps.enabled.includes(k)) delete maps.maps[k];   // data/maps.json "enabled": temporarily playable maps (picker and ?map= follow it)
 const mapId = maps.maps[qs.get('map')] ? qs.get('map') : maps.default;   // ?map=madrid ; another map = reload (one map in memory)
 const Q = qual.presets[qKey], base = `/data/cells/${mapId}/`;
-setProgress(0.05, 'Cargando índice de celdas…'); const index = await get(base + 'index.json');
-const go = (map, spawn) => { showLoading(); setProgress(0, 'Viajando…'); const u = new URLSearchParams(location.search); u.set('map', map); u.set('spawn', spawn); location.search = u; };
+setProgress(0.05, t('Cargando índice de celdas…')); const index = await get(base + 'index.json');
+const go = (map, spawn) => { showLoading(); setProgress(0, t('Viajando…')); const u = new URLSearchParams(location.search); u.set('map', map); u.set('spawn', spawn); location.search = u; };
 const pick = () => mapPicker({ maps, map: mapId, spawn: qs.get('spawn') || index.defaultSpawn, get, go });   // map + spawn selector (ui/mappick.js)
 document.querySelector('.v2l-foot')?.prepend(pick());
 const levels = await get(base + 'levels.json').catch(() => null);   // footbridges, car parks (scripts/bake/plugins/bridges.mjs, underground.mjs); none = terrain + decks
@@ -38,21 +42,22 @@ renderer.outputColorSpace = THREE.LinearSRGBColorSpace; renderer.setPixelRatio(M
 const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(cfg.camera.fov, 1, 0.5, Q.drawDist * 1.02);
 const resize = () => { renderer.setSize(innerWidth, innerHeight); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); }; addEventListener('resize', resize); resize();
 
-setProgress(0.1, 'Preparando el render…');
-const mats = makeMaterials(renderer), time = new TimeCycle(tc, scene, mats, Q); scene.add(makeSky(mats));
+setProgress(0.1, t('Preparando el render…'));
+const mats = makeMaterials(renderer), time = new TimeCycle(tc, scene, mats, Q); scene.add(makeSky(mats)); await mats.ready;   // texture atlases (3 MB); a failed one leaves flat colours
 const cells = new Cells(scene, index, base, Q, mats);
 cells.ground = new Ground(cells, levels);   // layered ground of the sim (sim/ground.js): the mover's y picks the layer (on / under bridges, in the car park)
+const shadows = new SunShadows(scene, mats, (x, z) => cells.heightAt(x, z), Q.shadow);
 const car = new Car(cfg.car, groundFn(cells.ground, CAR));
 const S = index.spawns[qs.get('spawn')] || spawnFor(transit, mapId, qs.get('spawn')) || index.spawns[index.defaultSpawn]; car.place(S.x, S.z, S.h);   // ?spawn=<id of data/zones/<map>.json or a rail stop of data/transit.json>
 // map limit (index.limit, baked): even-odd point-in-polygon; outside = back to the last inside position, stopped; warning near the edge
 const LIM = index.limit, inLim = (x, z) => { let c = false; for (const r of LIM.rings) for (let a = 0, b = r.length - 2; a < r.length; b = a, a += 2) if ((r[a + 1] > z) !== (r[b + 1] > z) && x < r[b] + (z - r[b + 1]) * (r[a] - r[b]) / (r[a + 1] - r[b + 1])) c = !c; return c; };
-const warnEl = Object.assign(document.body.appendChild(document.createElement('div')), { textContent: 'Fuera del mapa' });
+const warnEl = Object.assign(document.body.appendChild(document.createElement('div')), { textContent: t('Fuera del mapa') });
 warnEl.style.cssText = 'position:fixed;top:12%;left:50%;transform:translateX(-50%);padding:8px 18px;background:#000a;color:#ffd27a;font:600 18px system-ui;border-radius:6px;display:none;pointer-events:none';
 let limIn = { x: S.x, z: S.z }, limT = 0;
 
 // protagonist on foot + enterable vehicles + third-person camera (sim/play.js); pause menu + pointer lock (ui/pause.js)
 const pause = new Pause(canvas, { presets: qual.presets, current: qKey }), clock = frameClock();
-pause.el.querySelector('.v2p-main').append(pick());
+pause.el.querySelector('.v2p-main').append(pick()); pause.onTutorial = () => showTutorial(pause);
 const play = await makePlay({ scene, cells, mats, car, walker: cfg.walker, time, get, paused: () => pause.paused, map: mapId, Q });
 // where a parked dozer may stand (traffic/ambient.js park): the first spot on rings around the lot centre with no helipad (any lot spot, shown or not) within 14 m, no wall and no parked car under the machine
 play.ambient.yardSpot = (x, z, hw, hl, h) => {
@@ -83,12 +88,12 @@ const autopilot = () => {   // benchmark driver: laps the slice through the wayp
 const flyPos = d => { const L = loop.length, seg = 1300; d %= seg * L; const k = Math.floor(d / seg), t = d / seg - k, [ax, az] = loop[k], [bx, bz] = loop[(k + 1) % L]; return [ax + (bx - ax) * t, az + (bz - az) * t]; };
 onAction('camera', () => { mode = mode === 'car' ? 'fly' : 'car'; });
 onKey('KeyT', () => time.skip(1));   // jump the game clock one hour
-let clockTxt = '';
+let clockTxt = '', vehTxt = ''; onLang(() => { clockTxt = ''; });
 
 const step = fixedStep(cfg.physicsHz);
 let ready = false, focus = play.player, pending = null;
 // transport (ui/transit.js): same map = the player jumps there behind the loading screen; another map = reload with ?map=&spawn= (other params kept)
-const teleport = (x, z, h) => { pending = { x, z, h }; ready = false; showLoading(); setProgress(0.15, 'Viajando…'); play.player.place(x, z, h); };
+const teleport = (x, z, h) => { pending = { x, z, h }; ready = false; showLoading(); setProgress(0.15, t('Viajando…')); play.player.place(x, z, h); };
 const tr = transit && makeTransit({ T: transit, map: mapId, play, cells, pause, teleport, go });
 const radar = import('./ui/radar.js').then(m => m.makeRadar({ map: mapId, play, cam, pause, index, transit }));   // HUD radar + map screen (own rAF)
 const perf = new Perf(renderer, () => ({ cells: cells.stats, q: Q.label, draw: Q.drawDist, mode: mode + ({ car: ' · coche', heli: ' · helicóptero' }[play.inKind] || ' · a pie') + (auto ? ' (auto)' : ''), hour: time.h.toFixed(1), pos: `${focus.x.toFixed(0)}, ${focus.z.toFixed(0)}` }));
@@ -100,9 +105,9 @@ renderer.setAnimationLoop(now => {
   if (mode === 'fly') { flyD += dt * 70; [fx, fz] = flyPos(flyD); }
   perf.time('stream', () => cells.update(fx, fz));
   if (!ready) {
-    const s = cells.stats, f = cells.near(fx, fz, Math.min(Q.lodDist, 300)); setProgress(0.15 + 0.85 * f, `Cargando celdas… ${s.resident} listas · ${s.inflight} en camino`);
+    const s = cells.stats, f = cells.near(fx, fz, Math.min(Q.lodDist, 300)); setProgress(0.15 + 0.85 * f, t('Cargando celdas… {0} listas · {1} en camino', s.resident, s.inflight));
     if (pending) { if (f >= 1 && cells.ground.terrain(pending.x, pending.z)) { ready = true; const p = pending; pending = null; play.player.place(p.x, p.z, p.h); play.cam.reset(p.h); limIn = { x: p.x, z: p.z }; hideLoading(); } }   // its own cell must be in (the walker takes the top surface there)
-    else if (f >= 1) { ready = true; car.place(car.x, car.z, car.h); if (!play.inCar) spawnOnFoot(); hideLoading(); window.__v2.ready = performance.now(); console.log(`[v2] jugable en ${(window.__v2.ready / 1000).toFixed(2)} s`); }
+    else if (f >= 1) { ready = true; car.place(car.x, car.z, car.h); if (!play.inCar) spawnOnFoot(); hideLoading(); if (!auto && !navigator.webdriver && !tutorialSeen()) showTutorial(pause); window.__v2.ready = performance.now(); console.log(`[v2] jugable en ${(window.__v2.ready / 1000).toFixed(2)} s`); }
   }
   let a = 1;
   if (ready) a = perf.time('sim', () => step(dt, h => play.step(h, auto && mode === 'car' && play.current === car ? autopilot() : null)));
@@ -118,7 +123,8 @@ renderer.setAnimationLoop(now => {
   if (ready) perf.time('peds', () => { crowd.light(time.s?.light); if (play.inKind === 'car' && crowd.knock(car)) car.v *= car.p.skid ? 1 : 0.95; crowd.update(dt, { x: focus.x, y: play.current.y, z: focus.z }, play.inCar ? [{ x: play.current.x, z: play.current.z, r: 2.5 }] : [{ x: play.player.x, z: play.player.z, r: 0.4 }], play.inKind === 'car' ? car : null); });
   if (ready) perf.time('events', () => events.update(dt, { x: focus.x, y: play.current.y, z: focus.z }, play.inCar ? [{ x: play.current.x, z: play.current.z, r: 2.5 }] : [{ x: play.player.x, z: play.player.z, r: 0.4 }], time.s?.light, time.mats.u.uNight.value));
   if (ready && tr) tr.update();
-  time.update(dt); if (time.clock !== clockTxt) $('clock').textContent = (clockTxt = time.clock) + ' · ' + time.s.band;
-  perf.time('render', () => { perf.beginGpu(); renderer.render(scene, cam); perf.endGpu(); });
+  time.update(dt); if (time.clock !== clockTxt) $('clock').textContent = (clockTxt = time.clock) + ' · ' + t(time.s.band);
+  const veh = t(vehicleName(play.vehicle)); if (veh !== vehTxt) $('veh').textContent = vehTxt = veh;
+  perf.time('render', () => { perf.beginGpu(); shadows.update(renderer, cam, dt); renderer.render(scene, cam); perf.endGpu(); });
   perf.frame(now);
 });

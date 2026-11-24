@@ -8,6 +8,7 @@
 // bone matrices of every near person into one float texture read by makeSkinMaterial (instanced skinning: one draw call for all of them).
 import * as THREE from 'three';
 import { dims, buildPed, jointsOf } from './pedmesh.js';
+import { sunLit } from '../render/shadow.js';
 
 export const NB = 17, NQ = NB * 4, PL = NQ + 3, SLOTS = NB + 1;   // bones, pose length; texture slots per instance (+1 identity: footprint)
 export const PARENT = [-1, 0, 1, 2, 3, 2, 5, 6, 2, 8, 9, 0, 11, 12, 0, 14, 15];
@@ -103,24 +104,35 @@ export class Rig {
     const al = Math.acos(clamp((L1 * L1 + len * len - L2 * L2) / (2 * L1 * len), -1, 1)), kb = Math.PI - Math.acos(clamp((L1 * L1 + L2 * L2 - len * len) / (2 * L1 * L2), -1, 1));
     E(P, th, a - al, 0, b); E(P, th + 1, kb); E(P, th + 2, -(a - al) - kb - hp + toe);
   }
-  /** idle .. walk .. run with planted feet. s: { ph (rad), A (half stride m), walk 0..1, run 0..1, cr (crouch m), slope, t (s), look (head yaw) } */
+  /** idle .. walk .. run with planted feet. s: { ph (rad), A (half stride m), walk 0..1, run 0..1, cr (crouch m), slope, t (s), look (head yaw),
+   *  seed (own gait: sway, arms, posture, glances; none = neutral), fid (idle: 0 at ease, 1 phone, 2 hands on hips, 3 arms crossed) } */
   loco(P, s) {
-    const d = this.d, { A, walk, run, cr = 0, slope = 0, t = 0 } = s, idle = 1 - walk, ph = s.ph, u = ph / TAU, du = 0.6 - 0.2 * run, kA = Math.min(1, A / 0.3);
+    const d = this.d, { A, walk, run, cr = 0, slope = 0, t = 0, fid = 0 } = s, idle = 1 - walk, ph = s.ph, u = ph / TAU, du = 0.6 - 0.2 * run, kA = Math.min(1, A / 0.3);
+    const own = k => s.seed === undefined ? 0.5 : (h => h - Math.floor(h))(Math.sin(s.seed * 12.9898 + k * 78.233) * 43758.5453), sway = 0.5 + own(1), armK = 0.65 + 0.7 * own(2), post = 0.08 * (own(3) - 0.5);
     const H = (0.07 + 0.06 * run) * kA, bob = (0.006 + 0.012 * run) * 0.5 * (1 - Math.cos(2 * (ph - du * Math.PI))) * kA, br = Math.sin(t * 1.9);
-    const pitch = (0.03 + 0.1 * run) * walk + cr * 0.9, tw = (0.05 + 0.06 * run) * Math.sin(ph) * walk, hp = pitch * 0.3;
-    const Lm = (this.L1 + this.L2) * 0.97, D0 = d.hipY - d.ankY, drop = clamp(D0 - Math.sqrt(Math.max(0, Lm * Lm - A * A * 0.8)), 0, 0.11);   // long strides: hips sink so the planted foot is reached
-    rest(P); O(P, 0.012 * Math.sin(t * 0.45) * idle, -cr - bob - drop, 0);   // idle: slow weight shift; walking: pelvis bob
-    E(P, 0, hp, -tw * 0.6, 0.02 * Math.sin(ph) * walk * (1 - run)); E(P, 1, pitch * 0.35 + 0.01 * br * idle, tw * 0.4); E(P, 2, pitch * 0.35 - 0.018 * br * idle, tw * 0.6);
-    E(P, 3, -pitch * 0.55 + 0.04, (s.look || 0) * 0.4); E(P, 4, -pitch * 0.45 - 0.04 + 0.01 * br * idle, (s.look || 0) * 0.6);
+    const pitch = (0.03 + 0.1 * run) * walk + cr * 0.9, tw = (0.085 + 0.05 * run) * Math.sin(ph) * walk * (0.7 + 0.6 * own(4)), hp = pitch * 0.3;
+    const lat = Math.cos(ph - du * Math.PI) * kA * walk * (1 - 0.6 * run) * sway;   // +1 over the left foot, -1 over the right: weight shift and pelvis drop on the free side
+    const ws = Math.sin(t * 0.35 + own(5) * 9), shift = Math.sign(ws) * Math.min(1, Math.abs(ws) * 2.2) * idle;   // standing: the weight rests on one leg, then on the other
+    const Lm = (this.L1 + this.L2) * (0.97 + 0.025 * idle), D0 = d.hipY - d.ankY, drop = clamp(D0 - Math.sqrt(Math.max(0, Lm * Lm - A * A * 0.8)), 0, 0.11);   // long strides: hips sink so the planted foot is reached
+    rest(P); O(P, 0.02 * lat + 0.026 * shift, -cr - bob - drop - 0.008 * Math.abs(shift), 0);
+    const roll = 0.055 * lat + 0.05 * shift, look = (s.look || 0) + (s.seed === undefined ? 0 : 0.5 * (idle * 0.8 + 0.35) * Math.sin(t * 0.41 + own(6) * 9) * Math.max(0, Math.sin(t * 0.23 + own(7) * 9)));
+    E(P, 0, hp, -tw * 0.6, roll); E(P, 1, pitch * 0.35 + post * 0.5 + 0.01 * br * idle, tw * 0.7, -roll * 0.75); E(P, 2, pitch * 0.35 + post * 0.5 - 0.018 * br * idle, tw * 0.9, -roll * 0.45);
+    E(P, 3, -pitch * 0.55 + 0.04 - post * 0.5, look * 0.4 - tw * 0.4, roll * 0.1); E(P, 4, -pitch * 0.45 - 0.04 - post * 0.5 + 0.01 * br * idle, look * 0.6 - tw * 0.6, roll * 0.1);
     const f = [footPath(u, A, du, H), footPath(u + 0.5, A, du, H)];
     for (const side of [0, 1]) {
-      const uu = u + side * 0.5 - Math.floor(u + side * 0.5), [fz, fy] = f[side], x = (side ? -1 : 1) * (d.legX + 0.012);
-      const toe = (uu < du ? 0.45 * ss(0.6, 1, uu / du) : -0.3 * ss(0.7, 1, (uu - du) / (1 - du))) * walk;
-      this.legIK(P, side, x, d.ankY + fy + slope * fz, fz + 0.01, toe, hp);
+      const uu = u + side * 0.5 - Math.floor(u + side * 0.5), [fz, fy] = f[side], sx = side ? -1 : 1;
+      const st = uu / du, sw = (uu - du) / (1 - du), off = uu < du ? ss(0.75, 1, st) : 1 - ss(0, 0.35, sw), heel = uu < du ? 1 - ss(0, 0.16, st) : ss(0.7, 1, sw);   // push off the toes, land on the heel
+      const toe = (0.45 * off - 0.3 * heel) * walk * kA;
+      this.legIK(P, side, sx * (d.legX + 0.012 - 0.012 * kA), d.ankY + fy + 0.12 * Math.sin(Math.max(0, toe)) + slope * fz, fz + 0.01, toe, hp);
     }
-    const amp = (0.16 + 0.5 * run) * walk / Math.max(A, 0.2), bend = (0.2 + 0.95 * run) * walk + 0.16 + 0.03 * br * idle, back = cr * 1.6 - pitch * 0.7;
-    E(P, 5, -amp * f[1][0] + back, 0, 0.06 + 0.012 * br * idle); E(P, 6, -bend); E(P, 7, 0.05, 0, -0.05);
-    E(P, 8, -amp * f[0][0] + back, 0, -0.06 - 0.012 * br * idle); E(P, 9, -bend); E(P, 10, 0.05, 0, 0.05);
+    const amp = (0.16 + 0.5 * run) * walk * armK / Math.max(A, 0.2), bend = (0.2 + 0.95 * run) * walk + 0.16 + 0.03 * br * idle, back = cr * 1.6 - pitch * 0.7;
+    const lag = k => Math.max(0, footPath(u + k - 0.07, A, du, 0)[0]) / Math.max(A, 0.2) * (0.38 - 0.1 * run) * walk * armK;   // the forearm folds as the arm comes forward, a moment later
+    const L = [-amp * f[1][0] + back, 0, 0.06 + 0.012 * br * idle - 0.02 * roll, -bend - lag(0.5), 0, 0], R = [-amp * f[0][0] + back, 0, -0.06 - 0.012 * br * idle - 0.02 * roll, -bend - lag(0), 0, 0];
+    if (fid && idle > 0) {   // standing gestures
+      const G = GESTURE[fid]; for (let i = 0; i < 6; i++) { L[i] = lerp(L[i], G[0][i], idle); R[i] = lerp(R[i], G[1][i], idle); }
+      if (fid === 1) E(P, 4, -0.04 + 0.42 * idle, 0.08 * idle);
+    }
+    E(P, 5, L[0], L[1], L[2]); E(P, 6, L[3], L[4], L[5]); E(P, 7, 0.05, 0, -0.05); E(P, 8, R[0], R[1], R[2]); E(P, 9, R[3], R[4], R[5]); E(P, 10, 0.05, 0, 0.05);
     return P;
   }
   /** airborne: s.vy (rising: knee up, arms up; falling: legs reach down), s.fall 0..1 (long fall: flailing), s.t */
@@ -201,6 +213,11 @@ export class Rig {
   /** pushed / bumped: lunge to catch the balance, recover; u 0..1 */
   stumble(P, u) { return this.seq(P, [[0, this.key('stand')], [0.3, this.key('lunge')], [0.62, this.key('catch')], [1, this.key('stand')]], u); }
 }
+/** [upper arm x, y, z, forearm x, y, z] of the left and the right arm */
+const GESTURE = [null,
+  [[0.04, 0, 0.06, -0.2, 0, 0], [-0.4, 0, -0.06, -1.65, 0.45, 0]],       // phone in the right hand
+  [[0.35, 0, 0.62, -0.75, 0, -1.35], [0.35, 0, -0.62, -0.75, 0, 1.35]],    // hands on the hips
+  [[-0.42, 0, 0.02, -1.2, -1.15, 0], [-0.5, 0, -0.02, -1.0, 1.2, 0]]];    // arms crossed
 const _ONE = new THREE.Vector3(1, 1, 1), _ID = new THREE.Matrix4().elements;
 
 /** crossfade: a frozen snapshot of the last output eases into the live target pose (this.T, written by the caller every frame) */
@@ -233,6 +250,7 @@ if (aSel > 0.5 && abs(aSel - 1.0 - aModel) > 0.5) transformed = vec3(0.0);   // 
 #ifdef USE_INSTANCING_COLOR
   if (aPaint > 0.0) vColor = instanceColor * aPaint;
 #endif`);
+    sunLit(m, s, '(skinWeight.x * mat3(boneM(skinIndex.x)) + skinWeight.y * mat3(boneM(skinIndex.y)) + skinWeight.z * mat3(boneM(skinIndex.z)) + skinWeight.w * mat3(boneM(skinIndex.w))) * normal');
   };
   return m;
 }

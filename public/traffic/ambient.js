@@ -1,8 +1,7 @@
 // Ambient vehicles: parked cars on real kerbside bays / car-park rows (data/parking/<map>.json from scripts/parking_data.mjs) and a light
 // traffic that follows the street lanes at a constant speed per street and brakes for whatever is ahead (other traffic, the player, the
 // player's vehicle). No AI beyond that: at the end of a way it takes a random connected way, turns round in a dead end, despawns far away.
-// Draw cost: 2 draw calls for everything (one InstancedMesh per LOD over a "fleet" geometry holding every ambient model; the instance
-// attribute aSel picks the model in the shared lowpoly.js shader, the instance colour paints it). CPU: parked placement is cached per 128 m
+// Draw cost: one draw call per model and LOD in view (Fleet); the instance colour paints it. CPU: parked placement is cached per 128 m
 // cell and re-selected every few metres; traffic is O(n^2) over ~16 cars.
 import * as THREE from 'three';
 import { buildVehicle } from '../vehicles/carmesh.js';
@@ -11,26 +10,44 @@ import { CAR } from '../sim/ground.js';
 import { hash, inBox, pickWeighted } from './park_math.js';
 import { collide, contact, inertia } from '../sim/physics.js';
 
-const LOD0 = 50, CAP0 = 160, CAP1 = 900, RESEL = 8;   // m: full-detail radius; instance capacities; re-select parked cars after moving this far
+const LOD0 = 50, CAP0 = 48, CAP1 = 200, RESEL = 8;   // m: full-detail radius; instance capacities per model; re-select parked cars after moving this far
 
-/** one geometry with every model (aModel = index) + a flat dark footprint under each (shadow); lod 0 / 1; build(spec, lod) -> geometry */
-export function fleetGeometry(specs, lod, build = buildVehicle, shadow = true) {
-  const parts = specs.map((s, m) => {
-    const g = build(s, lod), B = new Builder(), hw = s.dims.width / 2 + 0.1, hl = s.dims.length / 2 + 0.1;
-    B.style('#2a2b2c'); B.quad({ x: -hw, y: 0.03, z: -hl }, { x: hw, y: 0.03, z: -hl }, { x: hw, y: 0.03, z: hl }, { x: -hw, y: 0.03, z: hl }, { x: 0, y: -1, z: 0 });   // footprint shadow
-    const sh = shadow && B.geometry(), n = g.attributes.position.count + (sh ? sh.attributes.position.count : 0);
-    return { g, sh, n, m };
-  });
-  const N = parts.reduce((a, p) => a + p.n, 0), pos = new Float32Array(N * 3), nrm = new Float32Array(N * 3), col = new Float32Array(N * 3), paint = new Float32Array(N), model = new Float32Array(N);
-  let o = 0;
-  for (const { g, sh, n, m } of parts) {
-    for (const x of shadow ? [sh, g] : [g]) { const c = x.attributes.position.count; pos.set(x.attributes.position.array, o * 3); nrm.set(x.attributes.normal.array, o * 3); col.set(x.attributes.color.array, o * 3); paint.set(x.attributes.aPaint.array, o); o += c; }
-    model.fill(m, o - n, o);
+/** model geometry + a flat dark footprint under it (shadow): position, normal, color, aPaint */
+export function withFootprint(spec, lod, build = buildVehicle) {
+  const g = build(spec, lod), B = new Builder(), hw = spec.dims.width / 2 + 0.1, hl = spec.dims.length / 2 + 0.1;
+  B.style('#2a2b2c'); B.quad({ x: -hw, y: 0.03, z: -hl }, { x: hw, y: 0.03, z: -hl }, { x: hw, y: 0.03, z: hl }, { x: -hw, y: 0.03, z: hl }, { x: 0, y: -1, z: 0 });
+  const sh = B.geometry(), G = new THREE.BufferGeometry();
+  for (const [k, n] of [['position', 3], ['normal', 3], ['color', 3], ['aPaint', 1]]) {
+    const a = sh.attributes[k].array, b = g.attributes[k].array, o = new Float32Array(a.length + b.length); o.set(a); o.set(b, a.length); G.setAttribute(k, new THREE.BufferAttribute(o, n));
   }
-  const G = new THREE.BufferGeometry();
-  G.setAttribute('position', new THREE.BufferAttribute(pos, 3)); G.setAttribute('normal', new THREE.BufferAttribute(nrm, 3)); G.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  G.setAttribute('aPaint', new THREE.BufferAttribute(paint, 1)); G.setAttribute('aModel', new THREE.BufferAttribute(model, 1));
   G.computeBoundingSphere(); return G;
+}
+
+/** instances of several models, one InstancedMesh per model (geos[m]) that is only drawn while it has instances: the GPU never works on a model
+ *  nobody sees. Per frame: begin(), add(...), end() */
+export class Fleet {
+  constructor(scene, mat, geos, cap) {
+    this.m = geos.map(g => {
+      const lit = new THREE.InstancedBufferAttribute(new Float32Array(cap * 2), 2), im = new THREE.InstancedMesh(g, mat, cap); g.setAttribute('aLights', lit);
+      im.setColorAt(0, new THREE.Color()); im.count = 0; im.visible = false; im.frustumCulled = false;   // instances spread over the map
+      for (const a of [im.instanceMatrix, im.instanceColor, lit]) a.setUsage(THREE.DynamicDrawUsage);
+      scene.add(im); return { im, lit, cap };
+    });
+    this.n = 0;
+  }
+  begin() { for (const { im } of this.m) im.count = 0; this.n = 0; }
+  /** model, matrix array + offset, colour, brake (-1: lamps off), indicator */
+  add(m, M, o, color, brake, ind) {
+    const { im, lit, cap } = this.m[m], i = im.count; if (i >= cap) return;
+    const A = im.instanceMatrix.array; for (let k = 0; k < 16; k++) A[i * 16 + k] = M[o + k];
+    im.setColorAt(i, color); lit.array[i * 2] = brake; lit.array[i * 2 + 1] = ind; im.count++; this.n++;
+  }
+  end() {
+    for (const { im, lit } of this.m) {
+      if (!(im.visible = im.count > 0)) continue;
+      for (const a of [im.instanceMatrix, im.instanceColor, lit]) { a.clearUpdateRanges(); a.addUpdateRange(0, im.count * a.itemSize); a.needsUpdate = true; }
+    }
+  }
 }
 
 export class Ambient {
@@ -43,12 +60,7 @@ export class Ambient {
     this.taken = new Set(); this.extra = [];   // parked slots the player drove away; cars the player left (park())
     this.parkModels = this.models.filter(x => x.s.dims.length < 5);   // buses and lorries do not park in the street bays
     this.luxModels = this.parkModels.filter(x => /deportivo|cabrio|todoterreno/.test(x.s.archetype));   // well-off zones (data.lux)
-    const mk = (lod, cap) => {
-      const g = fleetGeometry(this.fleet.map(x => x.s), lod), sel = new THREE.InstancedBufferAttribute(new Float32Array(cap), 1);
-      g.setAttribute('aSel', sel); const lit = new THREE.InstancedBufferAttribute(new Float32Array(cap * 2), 2); g.setAttribute('aLights', lit); const im = new THREE.InstancedMesh(g, mat, cap); im.setColorAt(0, new THREE.Color()); im.count = 0; im.frustumCulled = false;   // instances move: no stale bounds
-      im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(im); return { im, sel, lit, n: 0 };
-    };
-    this.L = [mk(0, CAP0), mk(1, CAP1)];
+    this.L = [CAP0, CAP1].map((cap, lod) => new Fleet(scene, mat, this.fleet.map(x => withFootprint(x.s, lod)), cap));
     this.parkR = Math.min(450, Q.treeDist * 0.75); this.nTraffic = data ? Math.round(Q.drawDist / 45) : 0;
     this.cache = new Map();   // cell key -> { m: Float32Array(16 * n), x, z, hl, hw, model, color } once its ground is resident
     this.at = null; this.parked = []; this.near = []; this.keep = []; this.t = 0; this.pending = false;
@@ -208,19 +220,14 @@ export class Ambient {
   write(focus) {
     this.cars = this.cars.filter(c => !c.dead);
     const [A, B] = this.L, M = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3();
-    A.n = B.n = 0;
-    for (const [d, s, Msrc] of this.parked) {
-      const L = d < LOD0 ? A : B, i = L.n; if (i >= (L === A ? CAP0 : CAP1)) continue;
-      L.im.instanceMatrix.array.set(Msrc.subarray(s.k * 16, s.k * 16 + 16), i * 16); L.sel.array[i] = s.m + 1; L.lit.array[i * 2] = -1; L.lit.array[i * 2 + 1] = 0; L.im.setColorAt(i, s.c); L.n++;
-    }
+    A.begin(); B.begin();
+    for (const [d, s, Msrc] of this.parked) (d < LOD0 ? A : B).add(s.m, Msrc, s.k * 16, s.c, -1, 0);
     for (const c of this.cars) {
-      const d = Math.hypot(c.x - focus.x, c.z - focus.z), L = d < LOD0 ? A : B, i = L.n; if (i >= (L === A ? CAP0 : CAP1)) continue;
-      M.compose(p.set(c.x, c.y, c.z), q.setFromEuler(e.set(0, c.rh + c.oh + Math.PI, 0)), one); M.toArray(L.im.instanceMatrix.array, i * 16);
-      L.sel.array[i] = c.md.m + 1; L.im.setColorAt(i, c.col); L.n++;
+      const d = Math.hypot(c.x - focus.x, c.z - focus.z); M.compose(p.set(c.x, c.y, c.z), q.setFromEuler(e.set(0, c.rh + c.oh + Math.PI, 0)), one);
       const turn = Math.atan2(Math.sin(c.h - c.rh), Math.cos(c.h - c.rh));   // heading still easing round a corner: indicator (+ = left)
-      L.lit.array[i * 2] = c.brake; L.lit.array[i * 2 + 1] = turn > 0.12 ? 1 : turn < -0.12 ? 2 : 0;
+      (d < LOD0 ? A : B).add(c.md.m, M.elements, 0, c.col, c.brake, turn > 0.12 ? 1 : turn < -0.12 ? 2 : 0);
     }
-    for (const L of this.L) { L.im.count = L.n; L.im.instanceMatrix.needsUpdate = true; L.im.instanceColor.needsUpdate = true; L.sel.needsUpdate = true; L.lit.needsUpdate = true; }
+    A.end(); B.end();
     const s = this.stats; s.parked = this.parked.length; s.traffic = this.cars.length; s.lod0 = A.n; s.lod1 = B.n;  }
   /** is (x, z) (a mover of radius r, feet at y if given) inside a parked or moving car? For the player's car / walker collisions */
   hit(x, z, r, y, traffic = true) {   // traffic false: parked cars only (the player's car meets the traffic with bump())

@@ -2,6 +2,7 @@
 // Both draw the same 4 m raster (data/parking/<map>.radar.bin from scripts/radar_data.mjs: own colours, baked from the map's own data,
 // no tiles) with canvas 2D, plus markers: places (zone spawns), transport stops, helicopters (parked + the player's), the player's car, you.
 import { onKey } from '../input/keys.js';
+import { t as tr, translate } from './i18n.js';
 
 // class -> colour (own HUD palette): field, green, sand, marsh, water, urban, building, pedestrian, street, main road, motorway
 const PAL = ['#a3a874', '#6c9552', '#dccb92', '#c9d2c8', '#3c78a0', '#b4ad9c', '#857e72', '#d8d0bc', '#f4f1e8', '#f2c14e', '#e07a3c'], OUT = '#22223b';
@@ -29,9 +30,9 @@ export async function makeRadar({ map, play, cam, pause, index, transit }) {
   for (const l of T?.rail || []) for (const s of l.stops) marks.push([s.x, s.z, 'rail', `${l.name}: ${s.name}`]);
   const live = () => {   // moving ones: helicopters on their pads, the player's car / helicopter
     const o = [], P = play.pads;
-    for (const s of P?.spots || []) if (s.ok !== false) o.push([s.x, s.z, 'heli', 'Helicóptero']);
-    if (play.heli) o.push([play.heli.x, play.heli.z, 'heli', 'Tu helicóptero']);
-    if (play.inKind !== 'car') o.push([play.vehicles[0].sim.x, play.vehicles[0].sim.z, 'car', 'Tu coche']);
+    for (const s of P?.spots || []) if (s.ok !== false) o.push([s.x, s.z, 'heli', tr('Helicóptero')]);
+    if (play.heli) o.push([play.heli.x, play.heli.z, 'heli', tr('Tu helicóptero')]);
+    if (play.inKind !== 'car') o.push([play.vehicles[0].sim.x, play.vehicles[0].sim.z, 'car', tr('Tu coche')]);
     return o;
   };
   const mark = (g, k, u, v, s = 1) => {
@@ -79,7 +80,7 @@ export async function makeRadar({ map, play, cam, pause, index, transit }) {
     <span style="flex:1;opacity:.85">Rueda: zoom · arrastrar: mover · M o Esc: volver</span>
     <span>■ sitio · <span style="color:#7fb0ff">M</span> metro · <span style="color:#8fd6a8">T</span> tren/tranvía · <span style="color:${GOLD}">H</span> helicóptero · <span style="color:${RED}">■</span> tu coche</span>
     <button style="font:inherit;color:${NAVY};background:${GOLD};border:2px solid ${CREAM};padding:6px 12px;cursor:pointer">Volver</button>`;
-  ov.append(mc, bar); document.body.appendChild(ov);
+  ov.append(mc, bar); document.body.appendChild(translate(ov));
   const mg = mc.getContext('2d'), half = document.createElement('canvas'), hg = half.getContext('2d');
   const V = { x: 0, z: 0, s: 4 }; let open = false, dirty = true, drag = null;
   const drawMap = () => {

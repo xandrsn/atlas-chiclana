@@ -2,6 +2,8 @@
 // Sancti Petri castle, white houses) and Madrid (Gran Vía, Cibeles, the stadium), progress bar and rotating tips.
 // API: showLoading(), setProgress(0..1, text), hideLoading().
 
+import { t as tr } from './i18n.js';
+
 const TITLE = 'ATLAS', SUB = 'Chiclana de la Frontera';
 const TIPS = [
   'En las salinas el suelo es blando y el viento sopla de lado: entra en las curvas con suavidad.',
@@ -218,7 +220,7 @@ export function showLoading() {
   onResize = () => { const gap = drawCollage(cv, innerWidth, innerHeight); title.style.top = gap + 'px'; };
   addEventListener('resize', onResize); onResize();
   let t = Math.floor(Math.random() * TIPS.length); const tip = root.querySelector('.v2l-tip span');
-  const next = () => { tip.classList.remove('in'); void tip.offsetWidth; tip.textContent = TIPS[t++ % TIPS.length]; tip.classList.add('in'); };
+  const next = () => { tip.classList.remove('in'); void tip.offsetWidth; tip.textContent = tr(TIPS[t++ % TIPS.length]); tip.classList.add('in'); };
   next(); timer = setInterval(next, 6000);
   return root;
 }

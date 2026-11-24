@@ -6,6 +6,7 @@
 // The screens are the pause menu's style (ui/pause.css), own design, no real logos. While one is open the game is paused (pause.paused).
 // Pure helpers (stairAt, stopNear, spawnFor, outOf) are exported for the node tests (scripts/transit_v2_test.mjs).
 import { onAction } from '../input/keys.js';
+import { t as tr, translate } from './i18n.js';
 
 const GB = 64;
 /** entrances [[x, z, h, station]] -> bucket grid */
@@ -125,7 +126,7 @@ export function makeTransit({ T, map, play, cells, pause, teleport, go }) {
   let cam = {};   // network map view, kept while switching lines on the same screen
   const show = (html, wire) => {
     el.classList.toggle('v2t-wide', html.includes('v2t-map'));
-    el.innerHTML = `<div class="v2p-box" role="dialog" aria-modal="true" aria-labelledby="v2t-t">${html}</div>`; el.hidden = false;
+    el.innerHTML = `<div class="v2p-box" role="dialog" aria-modal="true" aria-labelledby="v2t-t">${html}</div>`; translate(el).hidden = false;
     pause.paused = true; if (document.pointerLockElement) document.exitPointerLock();   // frozen like the pause menu, without opening it
     wire(sel => el.querySelectorAll(sel)); (el.querySelector('[autofocus]') || el.querySelector('button:not(:disabled)'))?.focus();
   };
@@ -137,11 +138,11 @@ export function makeTransit({ T, map, play, cells, pause, teleport, go }) {
     const e = metro.entrances[k], si = e[3], st = metro.stations[si]; if (!line) cam = {}; line ||= st.lines[0] || metro.lines[0].ref; open = { kind: 'metro', k };
     const L = metro.lines.find(l => l.ref === line), dots = s => `<span class="v2t-dots" aria-hidden="true">${s.lines.map(r => `<i style="--c:${colour(r)}"></i>`).join('')}</span>`;
     const exits = st.exits.length, other = metro.entrances.map((x, i) => i).filter(i => metro.entrances[i][3] === si && i !== k);
-    show(`<h2 id="v2t-t">Metro</h2><p class="v2t-sub">Estás en <b>${esc(st.name)}</b>${dots(st)} · ${exits} ${exits === 1 ? 'boca' : 'bocas'}</p>
+    show(`<h2 id="v2t-t">Metro</h2><p class="v2t-sub">Estás en <b>${esc(st.name)}</b>${dots(st)} · ${tr(exits === 1 ? '{0} boca' : '{0} bocas', exits)}</p>
       <div class="v2t-grid"><div class="v2t-map"><canvas role="img" aria-label="Plano de la red de metro: haz clic en una estación para viajar"></canvas><small>Arrastra para mover · rueda: zoom · clic en una estación para viajar</small></div><div>
       <h3 style="margin-top:0">Líneas</h3><div class="v2t-lines" role="group" aria-label="Líneas">${metro.lines.map(l => `<button data-line="${l.ref}" style="--c:${l.colour}" aria-pressed="${l.ref === line}">${l.ref}</button>`).join('')}</div>
-      <h3>Estaciones de la ${line === 'R' ? 'línea R' : 'línea ' + line.slice(1)}</h3>
-      <div class="v2t-list">${L.stops.map(i => { const s = metro.stations[i]; return `<button data-st="${i}"${i === si ? ' disabled' : ''}>${esc(s.name)}${dots(s)}${i === si ? ' · aquí' : ''}</button>`; }).join('')}</div>
+      <h3>${tr('Estaciones de la línea {0}', line === 'R' ? 'R' : line.slice(1))}</h3>
+      <div class="v2t-list">${L.stops.map(i => { const s = metro.stations[i]; return `<button data-st="${i}"${i === si ? ' disabled' : ''}>${esc(s.name)}${dots(s)}${i === si ? tr(' · aquí') : ''}</button>`; }).join('')}</div>
       </div></div>
       <div class="v2t-foot"><button class="v2p-go" data-a="up" autofocus>Subir a la calle</button>${other.length ? `<button data-a="other">Salir por otra boca</button>` : ''}<button data-a="close">Cerrar (Esc)</button></div>`,
     q => {
@@ -160,7 +161,7 @@ export function makeTransit({ T, map, play, cells, pause, teleport, go }) {
     const trips = T.trips.filter(t => t.from.map === map && (t.from.stop === stop.id || t.from.line === line.id));
     show(`<h2 id="v2t-t">${esc(line.name)}</h2><p class="v2t-sub">Parada <b>${esc(stop.name)}</b></p>
       <div class="v2t-grid"><div class="v2t-map"><canvas role="img" aria-label="Plano de la línea: haz clic en una parada para viajar"></canvas><small>Arrastra para mover · rueda: zoom · clic en una parada para viajar</small></div><div>
-      <h3 style="margin-top:0">Destinos</h3><div class="v2t-list">${line.stops.map((s, i) => `<button data-s="${i}"${s === stop ? ' disabled' : ''}>${esc(s.name)}${s === stop ? ' · aquí' : ''}</button>`).join('')}</div>
+      <h3 style="margin-top:0">Destinos</h3><div class="v2t-list">${line.stops.map((s, i) => `<button data-s="${i}"${s === stop ? ' disabled' : ''}>${esc(s.name)}${s === stop ? tr(' · aquí') : ''}</button>`).join('')}</div>
       ${trips.length ? `<h3>Larga distancia</h3><div class="v2t-list">${trips.map((t, i) => `<button data-trip="${i}">${esc(t.name)}</button>`).join('')}</div>` : ''}
       </div></div>
       <div class="v2t-foot"><button data-a="close" autofocus>Cerrar (Esc)</button></div>`,
@@ -189,7 +190,7 @@ export function makeTransit({ T, map, play, cells, pause, teleport, go }) {
       }
       near = stopNear(rail, p.x, p.z);
       const mouth = metro && !near ? stairAt(MT, grid, p.x, p.z, 'mouth') : -1;
-      const txt = play.tramNear?.() ? 'F · subir al tranvía' : near ? `F · ${near.line.name}: ${near.stop.name}` : mouth >= 0 ? `Metro ${metro.stations[metro.entrances[mouth][3]].name}: baja la escalera` : '';
+      const txt = play.tramNear?.() ? tr('F · subir al tranvía') : near ? `F · ${near.line.name}: ${near.stop.name}` : mouth >= 0 ? tr('Metro {0}: baja la escalera', metro.stations[metro.entrances[mouth][3]].name) : '';
       if (hint.textContent !== txt) hint.textContent = txt; hint.hidden = !txt;
     },
     T, metroScreen, railScreen, close,

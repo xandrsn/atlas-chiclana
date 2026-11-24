@@ -43,7 +43,7 @@ export function pedGLBGeometry(p, lod, dims, jointsOf) {
   const body = bodyOf(p), B = BODY.get(body)?.[lod]; if (!B) return null;
   const rd = dims(DIM(REF[body])), d = dims(p), Jr = jointsOf(rd), J = jointsOf(d), same = REF[body][0] === p.build.height && REF[body][1] === p.build.width && REF[body][2] === (p.build.stoop || 0);
   const sx = d.w / rd.w, sy = d.k / rd.k, sz = Math.max(1, d.w * 0.95) / Math.max(1, rd.w * 0.95), tint = { skin: p.skin, top: p.top.color, bottom: p.bottom.color, shoes: p.shoes, hair: p.hair.color };
-  const out = { position: [], normal: [], color: [], aPaint: [], aBone: [], aPivot: [], skinIndex: [], skinWeight: [] }; let tris = 0;
+  const out = { position: [], normal: [], color: [], aPaint: [], aBone: [], aPivot: [], skinIndex: [], skinWeight: [] }, index = [];
   const PIV = [[0, 0, 0], J[11], J[14], J[5], J[8]], group = b => b >= 11 && b <= 13 ? 1 : b >= 14 ? 2 : b >= 5 && b <= 7 ? 3 : b >= 8 && b <= 10 ? 4 : 0;
   for (const [key, acc] of pieces(p)) {
     const q = B.get(key); if (!q) continue;
@@ -55,20 +55,21 @@ export function pedGLBGeometry(p, lod, dims, jointsOf) {
     }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(P, 3)); g.setIndex(new THREE.BufferAttribute(q.idx, 1)); g.computeVertexNormals();   // smooth inside a piece
     const N = g.attributes.normal, I = q.idx;
-    if (slot !== 'fixed') _c.set(tc);
-    for (let t = 0; t < I.length; t++) {
-      const i = I[t]; _n.fromBufferAttribute(N, i); const s = shadeOf(_n), grey = q.col[i * 3];
+    if (slot === 'fixed') _c.setRGB(1, 1, 1); else _c.set(tc);
+    const base = out.aPaint.length; for (let t = 0; t < I.length; t++) index.push(base + I[t]);
+    for (let i = 0; i < n; i++) {
+      _n.fromBufferAttribute(N, i); const s = shadeOf(_n), grey = q.col[i * 3];
       out.position.push(P[i * 3], P[i * 3 + 1], P[i * 3 + 2]); out.normal.push(_n.x, _n.y, _n.z);
-      if (slot === 'fixed') out.color.push(q.col[i * 3] * s, q.col[i * 3 + 1] * s, q.col[i * 3 + 2] * s); else out.color.push(_c.r * grey * s, _c.g * grey * s, _c.b * grey * s);
+      out.color.push(_c.r * grey * s, _c.g * q.col[i * 3 + 1] * s, _c.b * q.col[i * 3 + 2] * s);   // the skin piece carries lips, cheeks, beard shadow
       out.aPaint.push(slot === 'top' ? grey * s : 0);
       let best = 0, bw = -1; for (let j = 0; j < 4; j++) { out.skinIndex.push(q.si[i * 4 + j]); out.skinWeight.push(q.sw[i * 4 + j]); if (q.sw[i * 4 + j] > bw) { bw = q.sw[i * 4 + j]; best = q.si[i * 4 + j]; } }
       const gr = group(best); out.aBone.push(gr); out.aPivot.push(...PIV[gr]);
     }
-    tris += I.length / 3;
   }
   const g = new THREE.BufferGeometry(), size = { position: 3, normal: 3, color: 3, aPaint: 1, aBone: 1, aPivot: 3, skinIndex: 4, skinWeight: 4 };
   for (const k in out) g.setAttribute(k, new THREE.Float32BufferAttribute(out[k], size[k]));
-  g.computeBoundingSphere(); g.computeBoundingBox(); g.userData = { triangles: tris, glb: true, body };
+  g.setIndex(index);
+  g.computeBoundingSphere(); g.computeBoundingBox(); g.userData = { triangles: index.length / 3, glb: true, body };
   return g;
 }
 

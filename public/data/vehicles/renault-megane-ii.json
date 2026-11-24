@@ -1,0 +1,87 @@
+{
+ "id": "renault-megane-ii",
+ "make": "Renault",
+ "model": "Mégane II",
+ "archetype": "compacto",
+ "era": [
+  2002,
+  2008
+ ],
+ "kind": "car",
+ "seats": 5,
+ "spawnWeight": 9,
+ "dims": {
+  "length": 4.21,
+  "width": 1.775,
+  "height": 1.455,
+  "wheelbase": 2.625,
+  "track": 1.52,
+  "wheelRadius": 0.315,
+  "wheelWidth": 0.2,
+  "groundClearance": 0.15
+ },
+ "body": {
+  "belt": 0.94,
+  "noseH": 0.72,
+  "tailH": 1,
+  "hood": 0.86,
+  "deck": 0.36,
+  "wsRake": 0.84,
+  "rearRake": 0.18,
+  "tumble": 0.17,
+  "windows": {
+   "from": 0.08,
+   "to": 0.95,
+   "panes": 2
+  }
+ },
+ "shape": {
+  "wsCurve": 0.88,
+  "crown": 0.02,
+  "flare": 0.015,
+  "boot": 0.2,
+  "lamp": {
+   "h": [
+    0.42,
+    0.95
+   ],
+   "w": 1.3
+  },
+  "tail": {
+   "h": [
+    0.5,
+    0.95
+   ],
+   "w": 0.9
+  }
+ },
+ "handling": {
+  "gears": 5,
+  "drive": "fwd",
+  "grip": 1,
+  "rearGrip": 0.95,
+  "driftFactor": 0.35,
+  "steerMaxDeg": 36,
+  "steerSpeedFalloff": 0.55,
+  "mass": 1230,
+  "powerKW": 83,
+  "maxSpeedKmh": 192,
+  "accel0to100": 10.9,
+  "brakeDecel": 8.2,
+  "comHeight": 0.53,
+  "suspension": {
+   "stiffness": 31980,
+   "damping": 2878,
+   "travel": 0.17,
+   "rollFactor": 0.7
+  }
+ },
+ "palette": [
+  "#c9ccce",
+  "#1d1f22",
+  "#2f5d9a",
+  "#e8e6e0",
+  "#8a1d24",
+  "#5c6f80"
+ ]
+}

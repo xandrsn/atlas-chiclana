@@ -1,0 +1,87 @@
+{
+ "id": "citroen-c3",
+ "make": "Citroën",
+ "model": "C3",
+ "archetype": "compacto",
+ "era": [
+  2002,
+  2008
+ ],
+ "kind": "car",
+ "seats": 5,
+ "spawnWeight": 7,
+ "dims": {
+  "length": 3.85,
+  "width": 1.665,
+  "height": 1.52,
+  "wheelbase": 2.46,
+  "track": 1.44,
+  "wheelRadius": 0.29,
+  "wheelWidth": 0.185,
+  "groundClearance": 0.15
+ },
+ "body": {
+  "belt": 0.93,
+  "noseH": 0.73,
+  "tailH": 0.95,
+  "hood": 0.72,
+  "deck": 0.14,
+  "wsRake": 0.86,
+  "rearRake": 0.46,
+  "tumble": 0.17,
+  "windows": {
+   "from": 0.06,
+   "to": 0.95,
+   "panes": 2
+  }
+ },
+ "shape": {
+  "wsCurve": 0.78,
+  "rearCurve": 0.75,
+  "crown": 0.045,
+  "flare": 0.02,
+  "lamp": {
+   "h": [
+    0.45,
+    1
+   ],
+   "w": 1.2
+  },
+  "tail": {
+   "h": [
+    0.5,
+    0.95
+   ],
+   "w": 0.65
+  }
+ },
+ "handling": {
+  "gears": 5,
+  "drive": "fwd",
+  "grip": 0.98,
+  "rearGrip": 0.93,
+  "driftFactor": 0.35,
+  "steerMaxDeg": 36,
+  "steerSpeedFalloff": 0.55,
+  "mass": 1020,
+  "powerKW": 55,
+  "maxSpeedKmh": 168,
+  "accel0to100": 14,
+  "brakeDecel": 8.2,
+  "comHeight": 0.55,
+  "suspension": {
+   "stiffness": 26520,
+   "damping": 2387,
+   "travel": 0.17,
+   "rollFactor": 0.7
+  }
+ },
+ "palette": [
+  "#e8e6e0",
+  "#b8262b",
+  "#d9c34a",
+  "#2f5d9a",
+  "#9aa1a6",
+  "#3d6b45"
+ ]
+}

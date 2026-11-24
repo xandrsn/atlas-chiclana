@@ -1,0 +1,88 @@
+{
+ "id": "mercedes-clase-c",
+ "make": "Mercedes-Benz",
+ "model": "Clase C (W203)",
+ "archetype": "berlina",
+ "era": [
+  2000,
+  2007
+ ],
+ "kind": "car",
+ "seats": 5,
+ "spawnWeight": 5,
+ "dims": {
+  "length": 4.53,
+  "width": 1.73,
+  "height": 1.425,
+  "wheelbase": 2.715,
+  "track": 1.5,
+  "wheelRadius": 0.315,
+  "wheelWidth": 0.21,
+  "groundClearance": 0.15
+ },
+ "body": {
+  "belt": 0.92,
+  "noseH": 0.73,
+  "tailH": 0.95,
+  "hood": 1.14,
+  "deck": 0.78,
+  "wsRake": 0.74,
+  "rearRake": 0.74,
+  "tumble": 0.17,
+  "windows": {
+   "from": 0.1,
+   "to": 0.93,
+   "panes": 2
+  }
+ },
+ "shape": {
+  "wsCurve": 0.88,
+  "rearCurve": 0.85,
+  "crown": 0.03,
+  "flare": 0.015,
+  "boot": 0.42,
+  "lamp": {
+   "h": [
+    0.46,
+    0.98
+   ],
+   "w": 1.25
+  },
+  "tail": {
+   "h": [
+    0.45,
+    0.95
+   ],
+   "w": 0.85
+  }
+ },
+ "handling": {
+  "gears": 5,
+  "drive": "rwd",
+  "grip": 1.03,
+  "rearGrip": 0.98,
+  "driftFactor": 0.45,
+  "steerMaxDeg": 36,
+  "steerSpeedFalloff": 0.55,
+  "mass": 1500,
+  "powerKW": 105,
+  "maxSpeedKmh": 215,
+  "accel0to100": 9.8,
+  "brakeDecel": 8.2,
+  "comHeight": 0.52,
+  "suspension": {
+   "stiffness": 39000,
+   "damping": 3510,
+   "travel": 0.17,
+   "rollFactor": 0.7
+  }
+ },
+ "palette": [
+  "#1d1f22",
+  "#9aa1a6",
+  "#20324f",
+  "#c9ccce",
+  "#f1efe6",
+  "#6b1420"
+ ]
+}

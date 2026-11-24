@@ -1,0 +1,84 @@
+{
+ "id": "renault-4",
+ "make": "Renault",
+ "model": "4",
+ "archetype": "clasico",
+ "era": [
+  1961,
+  1992
+ ],
+ "kind": "car",
+ "seats": 4,
+ "spawnWeight": 4,
+ "dims": {
+  "length": 3.66,
+  "width": 1.49,
+  "height": 1.53,
+  "wheelbase": 2.42,
+  "track": 1.26,
+  "wheelRadius": 0.285,
+  "wheelWidth": 0.145,
+  "groundClearance": 0.17
+ },
+ "body": {
+  "belt": 0.91,
+  "noseH": 0.78,
+  "tailH": 0.9,
+  "hood": 0.86,
+  "deck": 0.06,
+  "wsRake": 0.34,
+  "rearRake": 0.3,
+  "tumble": 0.12,
+  "windows": {
+   "from": 0.05,
+   "to": 0.95,
+   "panes": 3
+  }
+ },
+ "shape": {
+  "crown": 0.03,
+  "lamp": {
+   "h": [
+    0.5,
+    0.85
+   ],
+   "w": 0.75
+  },
+  "tail": {
+   "h": [
+    0.4,
+    0.75
+   ],
+   "w": 0.4
+  }
+ },
+ "handling": {
+  "gears": 4,
+  "drive": "fwd",
+  "grip": 0.85,
+  "rearGrip": 0.81,
+  "driftFactor": 0.35,
+  "steerMaxDeg": 36,
+  "steerSpeedFalloff": 0.55,
+  "mass": 720,
+  "powerKW": 25,
+  "maxSpeedKmh": 122,
+  "accel0to100": 28,
+  "brakeDecel": 6.5,
+  "comHeight": 0.56,
+  "suspension": {
+   "stiffness": 18720,
+   "damping": 1685,
+   "travel": 0.22,
+   "rollFactor": 1
+  }
+ },
+ "palette": [
+  "#e6e2d2",
+  "#7c8f6a",
+  "#8a3b2a",
+  "#4c6a86",
+  "#b9a67a",
+  "#f2f1ea"
+ ]
+}

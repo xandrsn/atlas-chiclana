@@ -2,6 +2,7 @@
 // unlit MeshBasicMaterial whose .color is the time-of-day light), one paint channel that InstancedMesh.setColorAt() replaces per instance,
 // and optional bone ids + pivots for the pedestrian walk cycle done in the vertex shader.
 import * as THREE from 'three';
+import { SH, sunLit } from './render/shadow.js';
 
 /** deterministic PRNG (mulberry32): rng(seed)() -> [0,1) */
 export function rng(seed) {
@@ -86,10 +87,10 @@ export class Builder {
   quad(a, b, c, d, ctr) { this.ctr = ctr; this.poly([a, b, c, d]); this.ctr = null; }
   get triangles() { return this.pos.length / 9; }
   /** -> BufferGeometry: position, normal, color (albedo x baked light), aPaint (0 = fixed, else baked light for the instance colour) [, aBone, aPivot] */
-  geometry({ rigged = false } = {}) {
+  geometry({ rigged = false, normals = null } = {}) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
-    g.computeVertexNormals();   // non-indexed -> face normals (flat)
+    if (normals) g.setAttribute('normal', new THREE.BufferAttribute(normals(this.pos), 3)); else g.computeVertexNormals();   // non-indexed -> face normals (flat)
     const nrm = g.attributes.normal, col = this.col.slice(), paint = this.paint.slice(), n = new THREE.Vector3();
     for (let i = 0; i < nrm.count; i++) { n.fromBufferAttribute(nrm, i); const s = shadeOf(n); col[i * 3] *= s; col[i * 3 + 1] *= s; col[i * 3 + 2] *= s; if (paint[i] > 0) paint[i] = s; }
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
@@ -104,19 +105,21 @@ export class Builder {
  *  (keeping the baked light). anim: pedestrian walk cycle from aBone/aPivot + per-instance aAnim (x = gait 0 idle,1 walk,2 run; y = phase);
  *  advance material.userData.time.value each frame. */
 export function makeLowpolyMaterial({ anim = false } = {}) {
-  const m = new THREE.MeshBasicMaterial({ vertexColors: true }), time = { value: 0 }, night = { value: 0 };
-  m.userData.time = time; m.userData.night = night;   // advance time every frame; night 0..1 (headlights, tail lights, dimmer reflections)
+  const m = new THREE.MeshBasicMaterial({ vertexColors: true }), time = { value: 0 };
+  m.userData.time = time;   // advance every frame
   m.defaultAttributeValues = { aSel: [0], aModel: [0], aLights: [0, 0], aPose: [0, 0, 0, 0] };   // geometries without them read 0 (not a generic value left by another program)
   m.customProgramCacheKey = () => 'lowpoly' + (anim ? '-anim' : '');
   m.onBeforeCompile = s => {
-    s.uniforms.uTime = time; s.uniforms.uNight = night;
+    s.uniforms.uTime = time; s.uniforms.uNight = SH.uNight;
     // fleet geometry (traffic/ambient.js): several models in one geometry (aModel per vertex); the instance shows one (aSel = model + 1, 0 = all)
     // aPaint < 0 = LAMP code (head, tail, indicators, glass); aLights per instance = (brake 0..1, indicator 0 off / 1 left / 2 right / 3 hazard)
-    let head = `uniform float uTime; uniform float uNight; varying float vEm; attribute float aPaint; attribute float aModel;
+    let head = `uniform float uTime; uniform float uNight; varying float vEm; attribute float aPaint; varying float vGloss; varying vec3 vN, vP; attribute float aModel;
 #if defined(USE_INSTANCING) && ${anim ? 0 : 1}
 attribute float aSel; attribute vec2 aLights;
+#elif defined(USE_INSTANCING)
+attribute float aSel; const vec2 aLights = vec2(0.0);   // pedestrians have no lamps
 #else
-const float aSel = 0.0; const vec2 aLights = vec2(0.0);   // pedestrians have no fleet models / lamps: frees attribute slots for aPose
+const float aSel = 0.0; const vec2 aLights = vec2(0.0);
 #endif
 `;
     s.vertexShader = s.vertexShader.replace('#include <project_vertex>', `#ifdef USE_INSTANCING
@@ -124,29 +127,33 @@ const float aSel = 0.0; const vec2 aLights = vec2(0.0);   // pedestrians have no
 #endif
 #include <project_vertex>
 #if defined(USE_INSTANCING) && ${anim ? 0 : 1}
-  if (aPaint > 0.0 || aPaint < -4.5) {   // fake reflection on paint and glass: the sky in the reflected ray, stronger at grazing angles
-    vec3 n = normalize(normalMatrix * mat3(instanceMatrix) * normal), v = normalize(-mvPosition.xyz), up = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
-    float f = pow(1.0 - abs(dot(n, v)), 2.0), r = smoothstep(-0.15, 0.7, dot(reflect(-v, n), up));
-    vColor += vec3(0.8, 0.88, 1.0) * (0.06 + 0.26 * f) * r * mix(1.0, 0.25, uNight) * (aPaint < 0.0 ? 1.6 : 1.0);
-  }
+  vGloss = aPaint > 0.0 ? 1.0 : aPaint < -0.5 ? 2.0 * step(vEm, 0.5) : 0.0; vN = normalMatrix * mat3(instanceMatrix) * normal; vP = -mvPosition.xyz;   // clear coat and glass: lit per pixel below
 #endif`);
-    s.vertexShader = s.vertexShader.replace('#include <color_vertex>', `vColor = color; vEm = 0.0;
+    s.vertexShader = s.vertexShader.replace('#include <color_vertex>', `vColor = color; vEm = 0.0; vGloss = 0.0; vN = vec3(0.0, 1.0, 0.0); vP = vec3(0.0, 0.0, 1.0);
 #ifdef USE_INSTANCING_COLOR
   if (aPaint > 0.0) vColor = instanceColor * aPaint;
 #endif
 ${anim ? '' : `#ifdef USE_INSTANCING
   if (aPaint > 0.0) {   // wear: per-parked-car dirt on the lower body (hash of the instance position; the player's own car sits at the origin: clean)
     float w = fract(sin(dot(instanceMatrix[3].xz, vec2(12.9898, 78.233))) * 43758.5453);
-    vColor *= 1.0 - 0.32 * w * smoothstep(0.75, 0.2, position.y);
+    vColor *= (1.0 - 0.32 * w * smoothstep(0.75, 0.2, position.y)) * mix(0.72, 1.0, smoothstep(0.1, 0.65, position.y));   // and the shade of the ground
   }
 #endif`}
   if (aPaint < -0.5 && aPaint > -4.5) {
     float k = -aPaint, blink = step(0.5, fract(uTime * 1.5)), ind = aLights.y, on = step(-0.5, aLights.x);   // brake < 0 = parked: lamps off
-    if (k < 1.5) { vColor = vec3(1.0, 0.95, 0.78); vEm = uNight * on; }
-    else if (k < 2.5) { vColor = vec3(1.0, 0.1, 0.07) * (0.55 + 0.45 * max(aLights.x, 0.0)); vEm = max(uNight * 0.85 * on, aLights.x); }
-    else { bool lit = ind > 2.5 || (k < 3.5 ? abs(ind - 1.0) < 0.5 : abs(ind - 2.0) < 0.5); vColor = vec3(1.0, 0.55, 0.08); vEm = lit ? blink : 0.0; }
+    if (k < 1.5) { vColor = mix(vec3(0.62, 0.65, 0.68), vec3(1.0, 0.95, 0.78), uNight * on); vEm = uNight * on; }
+    else if (k < 2.5) { vColor = vec3(1.0, 0.1, 0.07) * (0.42 + 0.45 * max(aLights.x, 0.0)); vEm = max(uNight * 0.85 * on, aLights.x); }
+    else { bool lit = ind > 2.5 || (k < 3.5 ? abs(ind - 1.0) < 0.5 : abs(ind - 2.0) < 0.5); vColor = vec3(1.0, 0.55, 0.08) * (lit ? 1.0 : 0.75); vEm = lit ? blink : 0.0; }
   }`);
-    s.fragmentShader = 'varying float vEm;\n' + s.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.rgb = mix(diffuseColor.rgb, vColor, vEm);   // lamps ignore the time-of-day light');
+    s.fragmentShader = 'varying float vEm, vGloss; varying vec3 vN, vP; uniform float uNight;\n' + s.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+  if (vGloss > 0.5) {   // reflection of a simple sky (zenith, bright horizon, ground) by Fresnel, and the sun's glint
+    vec3 n = normalize(vN), v = normalize(vP), r = reflect(-v, n), up = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz), sun = normalize((viewMatrix * vec4(uSunDir, 0.0)).xyz);
+    float h = dot(r, up), g = step(1.5, vGloss), f = pow(1.0 - clamp(dot(n, v), 0.0, 1.0), 5.0), s = max(dot(r, sun), 0.0);
+    vec3 env = mix(vec3(0.27, 0.25, 0.22), mix(vec3(0.90, 0.93, 0.95), vec3(0.40, 0.58, 0.84), smoothstep(0.0, 0.8, h)), smoothstep(-0.10, 0.06, h)) * diffuse;
+    diffuseColor.rgb = mix(diffuseColor.rgb, env, mix(0.07 + 0.55 * f, 0.20 + 0.70 * f, g));
+    diffuseColor.rgb += (pow(s, 160.0) * 0.9 + pow(s, 14.0) * 0.07 * (1.0 - g)) * diffuse * (1.0 - uNight) * sh_;
+  }
+  diffuseColor.rgb = mix(diffuseColor.rgb, vColor, vEm);   // lamps ignore the time-of-day light`);
     if (anim) {
       head += `attribute float aBone; attribute vec3 aPivot;
 #ifdef USE_INSTANCING
@@ -170,6 +177,13 @@ mat3 limbRot() {
   float leg = walk * mix(0.42, 0.85, run) * s, arm = walk * mix(0.32, 0.9, run) * s + (1.0 - walk) * 0.05 * sin(uTime * 1.3 + aAnim.y);
   a = aBone < 0.5 ? 0.0 : aBone < 1.5 ? leg : aBone < 2.5 ? -leg : aBone < 3.5 ? -arm : arm;
   return rotX(a);
+}
+// walking and running: the knee of the leg that swings forward and the elbows bend
+vec3 bendLimb(vec3 p) {
+  if (aBone < 0.5 || aAnim.x > 2.5) return p;
+  float walk = clamp(aAnim.x, 0.0, 1.0), run = clamp(aAnim.x - 1.0, 0.0, 1.0), c = cos(uTime * mix(5.6, 9.6, run) + aAnim.y), leg = 1.0 - step(2.5, aBone), h = aPivot.y * mix(0.2254, 0.4556, leg);
+  float a = leg > 0.5 ? walk * mix(0.75, 1.4, run) * max(0.0, aBone < 1.5 ? -c : c) : -(0.12 + walk * mix(0.18, 1.1, run));
+  vec3 k = aPivot - vec3(0.0, h, 0.0); return mix(p, k + rotX(a) * (p - k), smoothstep(k.y + 0.03, k.y - 0.03, p.y));
 }
 
 mat3 rotY(float a) { float c = cos(a), s = sin(a); return mat3(c, 0.0, -s, 0.0, 1.0, 0.0, s, 0.0, c); }
@@ -211,9 +225,9 @@ vec3 loco(vec3 p) {
     vec3 thigh = rotX(a) * pl, shin = rotX(a) * (k0 + rotX(kb) * (pl - k0)), foot = rotX(a) * (k0 + rotX(kb) * (a0 - k0 + rotX(-(a + kb) + toe * walk) * (pl - a0)));
     q = aPivot + mix(mix(thigh, shin, smoothstep(aPivot.y * 0.6, aPivot.y * 0.5, p.y)), foot, smoothstep(0.13, 0.08, p.y));
   } else {   // arms: swing from the shoulder, forearm bends at the elbow, then follow the torso
-    float ar = aBone < 3.5 ? armL : armR, e = aPivot.y * 0.2086;
+    float ar = aBone < 3.5 ? armL : armR, e = aPivot.y * 0.2254;
     vec3 pl = p - aPivot, e0 = vec3(0.0, -e, 0.0), arm = rotX(ar) * pl, fore = rotX(ar) * (e0 + rotX(-bend) * (pl - e0));
-    q = aPivot + mix(arm, fore, smoothstep(aPivot.y * 0.8, aPivot.y * 0.77, p.y));
+    q = aPivot + mix(arm, fore, smoothstep(aPivot.y * 0.785, aPivot.y * 0.755, p.y));
     q.y += 0.006 * sin(b * 1.9) * idle;
     q = vec3(0.0, HIP, 0.0) + rotX(pitch) * rotY(tw) * (q - vec3(0.0, HIP, 0.0));
   }
@@ -221,7 +235,7 @@ vec3 loco(vec3 p) {
 }
 `;
       s.vertexShader = s.vertexShader
-        .replace('#include <begin_vertex>', `vec3 transformed = aAnim.x > 5.5 ? loco(position) : aPivot + limbRot() * (position - aPivot);   // unlit: normals not needed
+        .replace('#include <begin_vertex>', `vec3 transformed = aAnim.x > 5.5 ? loco(position) : aPivot + limbRot() * (bendLimb(position) - aPivot);   // unlit: normals not needed
 if (aAnim.x > 5.5) { }
 else if (aAnim.x > 4.5) transformed.y -= 0.45;                                          // sitting down
 else if (aAnim.x > 3.5) transformed = rotX(1.45) * (transformed - vec3(0.0, 0.95, 0.0)) + vec3(0.0, 0.03 * sin(uTime * 3.0 + aAnim.y), 0.0);   // swimming: face down, hips at the origin
@@ -230,6 +244,7 @@ else if (aAnim.x < 2.5) { float walk = clamp(aAnim.x, 0.0, 1.0), run = clamp(aAn
   transformed.y += walk * abs(cos(ph)) * mix(0.025, 0.07, run) + (1.0 - walk) * 0.004 * sin(uTime * 1.7 + aAnim.y); }`);
     }
     s.vertexShader = head + s.vertexShader;
+    sunLit(m, s);
   };
   return m;
 }

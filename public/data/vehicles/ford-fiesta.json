@@ -1,0 +1,85 @@
+{
+ "id": "ford-fiesta",
+ "make": "Ford",
+ "model": "Fiesta (Mk5)",
+ "archetype": "compacto",
+ "era": [
+  2002,
+  2008
+ ],
+ "kind": "car",
+ "seats": 5,
+ "spawnWeight": 8,
+ "dims": {
+  "length": 3.92,
+  "width": 1.68,
+  "height": 1.46,
+  "wheelbase": 2.49,
+  "track": 1.47,
+  "wheelRadius": 0.295,
+  "wheelWidth": 0.185,
+  "groundClearance": 0.15
+ },
+ "body": {
+  "belt": 0.92,
+  "noseH": 0.73,
+  "tailH": 0.94,
+  "hood": 0.82,
+  "deck": 0.1,
+  "wsRake": 0.74,
+  "rearRake": 0.3,
+  "tumble": 0.14,
+  "windows": {
+   "from": 0.05,
+   "to": 0.93,
+   "panes": 2
+  }
+ },
+ "shape": {
+  "crown": 0.02,
+  "flare": 0.012,
+  "lamp": {
+   "h": [
+    0.45,
+    0.98
+   ],
+   "w": 1.15
+  },
+  "tail": {
+   "h": [
+    0.6,
+    1
+   ],
+   "w": 0.6
+  }
+ },
+ "handling": {
+  "gears": 5,
+  "drive": "fwd",
+  "grip": 1,
+  "rearGrip": 0.95,
+  "driftFactor": 0.35,
+  "steerMaxDeg": 36,
+  "steerSpeedFalloff": 0.55,
+  "mass": 1080,
+  "powerKW": 55,
+  "maxSpeedKmh": 166,
+  "accel0to100": 14,
+  "brakeDecel": 8.2,
+  "comHeight": 0.53,
+  "suspension": {
+   "stiffness": 28080,
+   "damping": 2527,
+   "travel": 0.17,
+   "rollFactor": 0.7
+  }
+ },
+ "palette": [
+  "#e8e6e0",
+  "#b8262b",
+  "#d9c34a",
+  "#2f5d9a",
+  "#9aa1a6",
+  "#3d6b45"
+ ]
+}

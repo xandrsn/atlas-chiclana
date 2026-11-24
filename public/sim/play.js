@@ -28,6 +28,7 @@ import { PIVOT, GROUSERS, TRACK_LOOP, TRACK_PATH } from '../vehicles/dozermesh.j
 import { Helipads } from '../traffic/helipads.js';
 import { Trams } from '../traffic/tram.js';
 import { blobShadow } from '../render/world.js';
+import { t as tr } from '../ui/i18n.js';
 import { poll, actions, takeLook, onAction, onKey, controls } from '../input/keys.js';
 
 export async function makePlay({ scene, cells, mats, car, walker, time, get, paused, map, Q }) {
@@ -54,7 +55,7 @@ export async function makePlay({ scene, cells, mats, car, walker, time, get, pau
     dz.blade.setColorAt(0, new THREE.Color('#e0a81c')); dz.shoes.setColorAt(0, new THREE.Color('#ffffff')); dz.blade.position.set(...PIVOT); dz.shoes.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     for (const m of [dz.blade, dz.shoes]) { m.frustumCulled = false; m.visible = false; carMesh.add(m); }
   }
-  let carColor = P.carColor, mult = C.speed || 1;   // the player's car paint; vehicle speed multiplier (pause menu: C.speed)
+  let carColor = P.carColor;   // the player's car paint
   // the driver of a traffic car the player takes gets out and walks off for a few seconds
   const drv = new THREE.InstancedMesh(buildPed(resolvePed(peds, peds.styles?.[1]?.id ?? P.style, 7), 0), pedMat, 1); drv.setColorAt(0, new THREE.Color(1, 1, 1)); drv.visible = false; drv.t = 0; scene.add(drv);
 
@@ -114,7 +115,7 @@ export async function makePlay({ scene, cells, mats, car, walker, time, get, pau
     vehicles.push({ kind: 'heli', sim: heli, shadow: hs, spec: helis[0] });
   }
   /** the player's helicopter becomes model m / colour col (taking a parked one: the old one is parked in its place) */
-  const setHeli = (m, col) => { hm = m; hCol = col; const s = helis[m], v = vehicles[1]; heli.p = heliParams(s, mult); v.spec = s; v.shadow.scale.set(s.dims.width * 0.8, 1, s.dims.length * 0.45); };
+  const setHeli = (m, col) => { hm = m; hCol = col; const s = helis[m], v = vehicles[1]; heli.p = heliParams(s); v.spec = s; v.shadow.scale.set(s.dims.width * 0.8, 1, s.dims.length * 0.45); };
   if (heli) setHeli(0, hCol);
   const setModel = (i, col) => {   // the player's road vehicle: geometry, handling, shadow, camera; col: its paint (default: the catalogue's)
     model = (i + roads.length) % roads.length; const s = roads[model], v = vehicles[0]; carColor = col ?? (s.id === P.car ? P.carColor : s.palette[0]);
@@ -125,7 +126,7 @@ export async function makePlay({ scene, cells, mats, car, walker, time, get, pau
     board.setDoor(doorMesh, cut);
     skin = new Skin(carMesh.geometry, s); car.tum = null; car.lift = 0; rider.on = false;
     if (dz) { dz.blade.visible = dz.shoes.visible = isDz; dz.blade.setColorAt(0, new THREE.Color(carColor)); dz.blade.instanceColor.needsUpdate = true; }
-    car.p = carParams(s, mult); v.spec = s; cShadow.scale.set(s.dims.width * 0.62, 1, s.dims.length * 0.55);
+    car.p = carParams(s); v.spec = s; cShadow.scale.set(s.dims.width * 0.62, 1, s.dims.length * 0.55);
     if (inV === v) cam.c = camFor(C.camera, s);
     console.log(`[v2] vehículo: ${s.make} ${s.model} (${s.archetype})`);
   };
@@ -204,7 +205,7 @@ export async function makePlay({ scene, cells, mats, car, walker, time, get, pau
     player, cam, solid, dbgWalls, vehicles, wrecks, fx, yards, get skin() { return skin; }, rider, ambient: amb, debris, heli, pads, roads, get model() { return model; }, setModel,
     get inCar() { return !!inV; }, trams, takeCar, setHeli, get carColor() { return carColor; },
     /** a tram with open doors within reach (ui/transit.js hint) */
-    tramNear: () => !inV && trams?.near(player.x, player.z, 2.5)?.cur.doors > 0.5, get current() { return inV ? inV.sim : player; }, get inKind() { return inV?.kind ?? null; },
+    tramNear: () => !inV && trams?.near(player.x, player.z, 2.5)?.cur.doors > 0.5, get vehicle() { return inV?.spec ?? null; }, get current() { return inV ? inV.sim : player; }, get inKind() { return inV?.kind ?? null; },
     /** place the player next to the first vehicle (spawn / after the ground loaded) */
     spawn() { const s = car; player.place(s.x - Math.cos(s.h) * 2.5, s.z + Math.sin(s.h) * 2.5, s.h, s.y); cam.reset(s.h); placeHeli(); },
     enter: i => { if (!inV) enter(vehicles[i]); },
@@ -212,7 +213,6 @@ export async function makePlay({ scene, cells, mats, car, walker, time, get, pau
     /** fixed step; drive overrides the controls of the occupied vehicle (autopilot) */
     step(h, drive) {
       const a = actions(), T = (x, z) => cells.ground.terrain(x, z);
-      if ((C.speed || 1) !== mult) { mult = C.speed || 1; car.p = carParams(roads[model], mult); if (heli) heli.p = heliParams(helis[hm], mult); }
       trams?.step(h);
       for (const v of vehicles) {
         const me = v === inV, s = v.sim;
@@ -247,7 +247,7 @@ export async function makePlay({ scene, cells, mats, car, walker, time, get, pau
         const p = drv.position, w = 1.4 * dt; p.x += drv.dir[0] * w; p.z += drv.dir[1] * w; p.y = cells.ground.at(p.x, p.z, p.y + 0.5, FOOT).y;
         setPedAnim(drv, 0, 1, 0); if ((drv.t -= dt) <= 0) drv.visible = false;
       }
-      if (time.s?.light) { pedMat.color.setRGB(...time.s.light); vehMat.color.copy(pedMat.color); vehMat.userData.night.value = Math.min(1, Math.max(0, (0.85 - time.s.sunInt) / 0.67)); }   // same night curve as render/world.js
+      if (time.s?.light) { pedMat.color.setRGB(...time.s.light); vehMat.color.copy(pedMat.color); }   // same night curve as render/world.js
       const A = actions(), cv = car.v, mine = inV === vehicles[0];   // player's car lamps: brake lights, indicators while turning slowly, off when parked
       setLights(carMesh, 0, mine ? (A.brake || A.throttle * cv < -0.1 && Math.abs(cv) > 0.5 ? 1 : 0) : -1, mine && Math.abs(cv) < 12 && Math.abs(A.steer) > 0.3 ? (A.steer * Math.sign(cv || 1) > 0 ? 1 : 2) : 0);
       for (const v of vehicles) {
@@ -272,7 +272,7 @@ export async function makePlay({ scene, cells, mats, car, walker, time, get, pau
       if (rider.on) { avatar.rig.air(avatar.anim.T, { vy: -2, fall: rider.t < 1.2 ? 1 : 0.15, t: avatar.t }); avatar.update(dt, ['thrown', 0.3]); riderFrame(dt); }
       else avatar.update(dt, seated ?? avatar.walker(player, wet));   // the skinned protagonist: gait / jump / falls / swim (sim/avatar.js)
       const t = inV ? { ...inV.sim.pose(alpha), v: inV.sim.v, car: true } : { ...pp, v: player.v, car: false };
-      const txt = !inV ? '' : inV.kind === 'tram' ? `${trams.nextStop(inV.sim)}${inV.sim.cur.doors > 0.5 ? ' · F bajar' : ''}` : `${Math.round(Math.abs(inV.sim.v) * 3.6)} km/h`;
+      const txt = !inV ? '' : inV.kind === 'tram' ? `${trams.nextStop(inV.sim)}${inV.sim.cur.doors > 0.5 ? tr(' · F bajar') : ''}` : `${Math.round(Math.abs(inV.sim.v) * 3.6)} km/h`;
       if (hud.textContent !== txt) { hud.textContent = txt; hud.hidden = !txt; }
       if (inV?.kind !== 'heli' && inV?.kind !== 'tram') dbgWalls.update(dt, inV ? { ...t, y: inV.sim.y, hw: car.p.halfW ?? 0.85, hl: car.p.halfL ?? 2.2 } : { ...t, y: player.y, h: 0, hw: 0.3, hl: 0.3 });
       if (!flying) {

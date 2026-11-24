@@ -3,12 +3,13 @@
 // with a crossfade between poses (no jumps). Unlit like every v2 mesh: the material colour is the time-of-day light (play.js copies it).
 import * as THREE from 'three';
 import { Rig, Animator, ss } from '../peds/rig.js';
+import { sunLit } from '../render/shadow.js';
 
 export class Avatar {
   constructor(recipe) {
     this.rig = new Rig(recipe); this.anim = new Animator(); this.t = 0;
     const { root, bones, skeleton } = this.rig.skeleton(); this.bones = bones;
-    this.mat = new THREE.MeshBasicMaterial({ vertexColors: true });
+    this.mat = new THREE.MeshBasicMaterial({ vertexColors: true }); this.mat.customProgramCacheKey = () => 'avatar'; this.mat.onBeforeCompile = s => sunLit(this.mat, s, 'objectNormal');
     const m = this.mesh = new THREE.SkinnedMesh(this.rig.geometry(recipe), this.mat);
     m.add(root); m.updateMatrixWorld(true); m.bind(skeleton); m.frustumCulled = false;   // shortcut: never culled (one mesh, always near the camera)
   }

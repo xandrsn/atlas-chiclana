@@ -1,0 +1,38 @@
+{
+ "id": "garza-cernicalo",
+ "make": "Eurocopter",
+ "model": "AS350 Écureuil",
+ "archetype": "helicoptero",
+ "era": [
+  1990,
+  2008
+ ],
+ "kind": "heli",
+ "seats": 6,
+ "spawnWeight": 0,
+ "dims": {
+  "length": 12.94,
+  "width": 2.5,
+  "height": 3.14,
+  "rotor": 10.69,
+  "skidTrack": 2.17
+ },
+ "flight": {
+  "maxSpeedKmh": 400,
+  "accel": 18,
+  "climb": 16,
+  "yawRate": 1.9,
+  "ceiling": 320
+ },
+ "palette": [
+  "#d8a21c",
+  "#2a5d8a",
+  "#c42d2d",
+  "#eeeeea",
+  "#2e3a2e"
+ ],
+ "body": {
+  "type": "as350",
+  "second": "#23262b"
+ }
+}

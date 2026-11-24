@@ -1,0 +1,85 @@
+{
+ "id": "volkswagen-golf",
+ "make": "Volkswagen",
+ "model": "Golf IV",
+ "archetype": "compacto",
+ "era": [
+  1997,
+  2004
+ ],
+ "kind": "car",
+ "seats": 5,
+ "spawnWeight": 11,
+ "dims": {
+  "length": 4.15,
+  "width": 1.735,
+  "height": 1.44,
+  "wheelbase": 2.51,
+  "track": 1.5,
+  "wheelRadius": 0.31,
+  "wheelWidth": 0.195,
+  "groundClearance": 0.15
+ },
+ "body": {
+  "belt": 0.91,
+  "noseH": 0.75,
+  "tailH": 0.94,
+  "hood": 1,
+  "deck": 0.1,
+  "wsRake": 0.66,
+  "rearRake": 0.34,
+  "tumble": 0.14,
+  "windows": {
+   "from": 0.04,
+   "to": 0.9,
+   "panes": 2
+  }
+ },
+ "shape": {
+  "crown": 0.015,
+  "flare": 0.012,
+  "lamp": {
+   "h": [
+    0.46,
+    0.92
+   ],
+   "w": 1.15
+  },
+  "tail": {
+   "h": [
+    0.45,
+    0.95
+   ],
+   "w": 0.7
+  }
+ },
+ "handling": {
+  "gears": 5,
+  "drive": "fwd",
+  "grip": 1.02,
+  "rearGrip": 0.97,
+  "driftFactor": 0.35,
+  "steerMaxDeg": 36,
+  "steerSpeedFalloff": 0.55,
+  "mass": 1200,
+  "powerKW": 74,
+  "maxSpeedKmh": 188,
+  "accel0to100": 11.3,
+  "brakeDecel": 8.2,
+  "comHeight": 0.53,
+  "suspension": {
+   "stiffness": 31200,
+   "damping": 2808,
+   "travel": 0.17,
+   "rollFactor": 0.7
+  }
+ },
+ "palette": [
+  "#1d1f22",
+  "#9aa1a6",
+  "#20324f",
+  "#c9ccce",
+  "#f1efe6",
+  "#6b1420"
+ ]
+}

@@ -1,0 +1,86 @@
+{
+ "id": "land-rover-defender",
+ "make": "Land Rover",
+ "model": "Defender 90",
+ "archetype": "todoterreno",
+ "era": [
+  1990,
+  2007
+ ],
+ "kind": "car",
+ "seats": 5,
+ "spawnWeight": 2,
+ "dims": {
+  "length": 3.88,
+  "width": 1.79,
+  "height": 1.97,
+  "wheelbase": 2.36,
+  "track": 1.49,
+  "wheelRadius": 0.37,
+  "wheelWidth": 0.24,
+  "groundClearance": 0.23
+ },
+ "body": {
+  "belt": 1.12,
+  "noseH": 1.02,
+  "tailH": 1.1,
+  "hood": 1.18,
+  "deck": 0.04,
+  "wsRake": 0.22,
+  "rearRake": 0.04,
+  "tumble": 0.1,
+  "rack": true,
+  "windows": {
+   "from": 0.06,
+   "to": 0.96,
+   "panes": 2
+  }
+ },
+ "shape": {
+  "crown": 0.015,
+  "flare": 0.04,
+  "lamp": {
+   "h": [
+    0.55,
+    0.85
+   ],
+   "w": 0.6
+  },
+  "tail": {
+   "h": [
+    0.35,
+    0.6
+   ],
+   "w": 0.4
+  }
+ },
+ "handling": {
+  "gears": 5,
+  "drive": "awd",
+  "grip": 0.95,
+  "rearGrip": 0.9,
+  "driftFactor": 0.35,
+  "steerMaxDeg": 36,
+  "steerSpeedFalloff": 0.55,
+  "mass": 1750,
+  "powerKW": 90,
+  "maxSpeedKmh": 140,
+  "accel0to100": 17,
+  "brakeDecel": 7.4,
+  "comHeight": 0.72,
+  "suspension": {
+   "stiffness": 45500,
+   "damping": 4095,
+   "travel": 0.17,
+   "rollFactor": 0.85
+  }
+ },
+ "palette": [
+  "#3b4a35",
+  "#e6e2d2",
+  "#1f4a3a",
+  "#1d1f22",
+  "#7a6a4a",
+  "#f2f1ea"
+ ]
+}

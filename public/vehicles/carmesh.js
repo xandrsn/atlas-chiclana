@@ -42,7 +42,7 @@ export const pickColor = (spec, seed) => new THREE.Color(pick(rng(seed), spec.pa
 
 /** tyre + rim (outer face): rim disc, darker hub cap and five spoke slots at LOD 0 */
 function wheel(B, x, y, z, r, w, lod, outer) {
-  B.style(TIRE); B.cylX(x, y, z, r, w, lod ? 6 : 10, lod ? null : RIM, outer);
+  B.style(TIRE); B.cylX(x, y, z, r, w, lod ? 6 : 18, lod ? null : RIM, outer);
   if (lod) return;
   const xo = x + outer * (w / 2 + 0.008), ctr = v3(x, y, z), ring = (rr, n, a0 = 0) => Array.from({ length: n }, (_, i) => v3(xo, y + rr * Math.cos(a0 + i / n * 2 * Math.PI), z + rr * Math.sin(a0 + i / n * 2 * Math.PI)));
   B.style(CAP); B.ctr = ctr; B.poly(ring(r * 0.2, 6)); B.ctr = null;
@@ -73,7 +73,7 @@ export function buildVehicle(spec, lod = 0, { wheels = true, part = 'all' } = {}
   const B = new Builder();
   (spec.kind === 'bike' ? bike : spec.kind === 'heli' ? heli : spec.kind === 'dozer' ? (b, s, l) => dozer(b, s, l, part) : car)(B, spec, lod);
   if (wheels && spec.kind !== 'heli' && spec.kind !== 'dozer') for (const [x, y, z] of wheelPositions(spec)) wheel(B, x, y, z, spec.dims.wheelRadius, spec.dims.wheelWidth, lod, Math.sign(x) || 1);
-  const g = B.geometry(); g.userData = { id: spec.id, lod, triangles: B.triangles };
+  const g = B.geometry({ normals: spec.kind === 'heli' ? creased : null }); g.userData = { id: spec.id, lod, triangles: B.triangles };
   return g;
 }
 
@@ -82,6 +82,22 @@ export function buildVehicle(spec, lod = 0, { wheels = true, part = 'all' } = {}
 const GLB = new Map();   // id -> [lod0 geometry, lod1 geometry]
 export function useGLB(id, geos) { GLB.set(id, geos); }
 
+/** smooth normals over edges softer than ~40 degrees on a triangle soup (number[] positions), so panels read as pressed steel and creases stay */
+export function creased(pos, cos = 0.77) {
+  const n = pos.length / 3, F = new Float32Array(n), at = new Map(), keys = [], out = new Float32Array(n * 3);   // F: face normals x area, 3 per triangle
+  for (let t = 0; t < n; t += 3) {
+    const p = k => pos.slice((t + k) * 3, (t + k) * 3 + 3), a = p(0), b = p(1), c = p(2), u = b.map((v, i) => v - a[i]), w = c.map((v, i) => v - a[i]);
+    F[t] = u[1] * w[2] - u[2] * w[1]; F[t + 1] = u[2] * w[0] - u[0] * w[2]; F[t + 2] = u[0] * w[1] - u[1] * w[0];
+    for (const q of [a, b, c]) { const k = q.map(v => Math.round(v * 1000)).join(); keys.push(k); if (!at.has(k)) at.set(k, []); at.get(k).push(t); }
+  }
+  for (let i = 0; i < n; i++) {
+    const t = i - i % 3, L = Math.hypot(F[t], F[t + 1], F[t + 2]) || 1, s = [0, 0, 0];
+    for (const o of at.get(keys[i])) { const l = Math.hypot(F[o], F[o + 1], F[o + 2]); if (l && (F[t] * F[o] + F[t + 1] * F[o + 1] + F[t + 2] * F[o + 2]) >= cos * l * L) for (let k = 0; k < 3; k++) s[k] += F[o + k]; }
+    const m = Math.hypot(...s) || 1; for (let k = 0; k < 3; k++) out[i * 3 + k] = s[k] / m;
+  }
+  return out;
+}
+
 /** glTF scene -> [LOD0 + door nodes merged (closed shell; cutDoor re-cuts the door), LOD1]: non-indexed, colour x baked light, aPaint (_PAINT: 1 paint -> baked light, 0 fixed, < 0 LAMP code) */
 export function glbGeometries(root) {
   root.updateMatrixWorld(true);
@@ -89,14 +105,15 @@ export function glbGeometries(root) {
     const nodes = [root.getObjectByName('LOD' + lod), ...lod ? [] : root.children.filter(c => /^door_/.test(c.name))], pos = [], col = [], paint = [], n = v3(0, 0, 0);
     for (const node of nodes) node.traverse(o => {
       if (!o.isMesh) return;
-      const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone(); g.applyMatrix4(o.matrixWorld); g.computeVertexNormals();
-      const P = g.attributes.position, N = g.attributes.normal, C = g.attributes.color, K = g.attributes._paint, cs = C.itemSize;
+      const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone(); g.applyMatrix4(o.matrixWorld);
+      const P = g.attributes.position, C = g.attributes.color, K = g.attributes._paint, cs = C.itemSize;
       for (let i = 0; i < P.count; i++) {
-        n.fromBufferAttribute(N, i); const s = shadeOf(n), p = K.getX(i);
-        pos.push(P.getX(i), P.getY(i), P.getZ(i)); col.push(C.getX(i) * s, C.getY(i) * s, C.getZ(i) * s); paint.push(p > 0 ? s : p); if (cs < 3) throw new Error('GLB colour');
+        pos.push(P.getX(i), P.getY(i), P.getZ(i)); col.push(C.getX(i), C.getY(i), C.getZ(i)); paint.push(K.getX(i)); if (cs < 3) throw new Error('GLB colour');
       }
     });
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+    const N = creased(pos);
+    for (let i = 0; i < paint.length; i++) { const s = shadeOf(n.fromArray(N, i * 3)); for (let k = 0; k < 3; k++) col[i * 3 + k] *= s; if (paint[i] > 0) paint[i] = s; }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(N, 3));
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setAttribute('aPaint', new THREE.Float32BufferAttribute(paint, 1));
     return g;
   });

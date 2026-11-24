@@ -1,6 +1,7 @@
 // Pause menu + pointer lock. Click on the canvas = capture the mouse (and resume); Esc / losing the lock / window blur = pause and
 // release the mouse. While paused the game loop gets dt = 0 (frameClock), so the fixed 60 Hz step stops and no time piles up.
 import { onAction, controls } from '../input/keys.js';
+import { langSwitch, translate } from './i18n.js';
 
 /** pure: real frame time -> game dt; 0 while paused and no catch-up jump on resume */
 export function frameClock(max = 0.1) {
@@ -9,7 +10,7 @@ export function frameClock(max = 0.1) {
 }
 
 const NAMES = { Space: 'Espacio', Escape: 'Esc', Enter: 'Intro', ShiftLeft: 'Mayús', ShiftRight: 'Mayús dcha.', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→' };
-const keyName = c => NAMES[c] || c.replace(/^Key|^Digit/, '');
+export const keyName = c => NAMES[c] || c.replace(/^Key|^Digit/, '');
 const store = (k, v) => { try { v === undefined ? (v = localStorage.getItem(k)) : localStorage.setItem(k, v); } catch { return null; } return v; };
 
 export class Pause {
@@ -18,7 +19,6 @@ export class Pause {
     const C = controls(), M = C.mouse;
     const s = +store('v2.sens'), inv = store('v2.invertY');
     if (s > 0) M.sensitivity = s; if (inv !== null) M.invertY = inv === '1';
-    C.speed = Math.min(4, Math.max(0.5, +store('v2.vspeed') || 1));   // vehicle speed multiplier (sim/play.js: cars, bikes, helicopters)
     this.canvas = canvas; this.paused = false; this.locked = false; this.lostAt = -1e9;
     const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = new URL('./pause.css', import.meta.url); document.head.appendChild(link);
     const el = this.el = document.createElement('div'); el.className = 'v2p'; el.hidden = true;
@@ -30,10 +30,11 @@ export class Pause {
         <button class="v2p-go" data-a="resume">Reanudar</button>
         <button data-a="map">Mapa (M)</button>
         <button data-a="help" aria-expanded="false">Controles</button>
+        <button data-a="how">Cómo jugar</button>
+        <div class="v2p-row"><span>Idioma</span></div>
         <label>Calidad <select data-a="q">${opts}</select></label>
         <label>Sensibilidad del ratón <input data-a="sens" type="range" min="0.0005" max="0.006" step="0.0001" value="${M.sensitivity}"></label>
         <label class="v2p-chk"><input data-a="inv" type="checkbox"${M.invertY ? ' checked' : ''}> Invertir eje Y</label>
-        <label>Velocidad de vehículos <output data-a="vsout">x${C.speed}</output> <input data-a="vspeed" type="range" min="0.5" max="4" step="0.25" value="${C.speed}"></label>
         <label class="v2p-off">Volumen (reservado) <input type="range" disabled value="80"></label>
       </div>
       <div class="v2p-help" hidden>
@@ -41,21 +42,21 @@ export class Pause {
           <tr><td>Ratón</td><td>Girar la cámara (clic en la pantalla para capturarlo)</td></tr>
           <tr><td>Rueda</td><td>Acercar / alejar la cámara</td></tr>
           <tr><td>Mando</td><td>Stick izq. mover · stick der. cámara · A saltar/freno de mano · B correr · Y entrar/salir · RT/LT acelerar/frenar · Start pausa</td></tr>
-          <tr><td>Trucos de prueba</td><td>Escribe ${C.cheats.map(c => `<b>${c.code}</b> (${c.label})`).join(', ')}</td></tr>
+          <tr><td>Trucos de prueba</td><td>Escribe ${C.cheats.map(c => `<b>${c.code}</b> (<span>${c.label}</span>)`).join(', ')}</td></tr>
           <tr><td>F3</td><td>Panel de rendimiento</td></tr>
         </table>
       </div>
     </div>`;
-    document.body.appendChild(el);
-    this.hint = document.createElement('div'); this.hint.className = 'v2p-hint'; this.hint.textContent = 'Clic para capturar el ratón · Esc pausa'; document.body.appendChild(this.hint);
+    el.querySelector('.v2p-row').append(langSwitch()); document.body.appendChild(translate(el));
+    this.hint = document.createElement('div'); this.hint.className = 'v2p-hint'; this.hint.textContent = 'Clic para capturar el ratón · Esc pausa'; document.body.appendChild(translate(this.hint));
     const $ = a => el.querySelector(`[data-a="${a}"]`);
     $('resume').onclick = () => this.resume();
+    $('how').onclick = () => this.onTutorial?.();   // ui/tutorial.js (boot.js)
     $('map').onclick = () => this.onMap?.();   // set by ui/radar.js (no radar data: the button does nothing)
     el.onclick = e => { if (e.target === el) this.resume(); };   // clicking the game behind the menu also resumes
     $('help').onclick = () => { const h = el.querySelector('.v2p-help'); h.hidden = !h.hidden; $('help').setAttribute('aria-expanded', String(!h.hidden)); };
     $('q').onchange = e => { store('v2.q', e.target.value); const u = new URL(location.href); u.searchParams.delete('q'); location.href = u; };   // presets are read at boot
     $('sens').oninput = e => { M.sensitivity = +e.target.value; store('v2.sens', e.target.value); };
-    $('vspeed').oninput = e => { C.speed = +e.target.value; $('vsout').textContent = 'x' + C.speed; store('v2.vspeed', e.target.value); };
     $('inv').onchange = e => { M.invertY = e.target.checked; store('v2.invertY', e.target.checked ? '1' : '0'); };
 
     canvas.addEventListener('click', () => { if (!this.locked) this.resume(); });
@@ -70,7 +71,7 @@ export class Pause {
   /** Events panel (events/events.js): one switch per event of the current map, off by default, applied live */
   eventsPanel(ev) {
     if (!ev.list.length) return;
-    const box = document.createElement('details'); box.className = 'v2p-ev'; box.innerHTML = '<summary>Eventos</summary>';
+    const box = document.createElement('details'); box.className = 'v2p-ev'; box.innerHTML = '<summary>Eventos</summary>'; translate(box);
     for (const e of ev.list) {
       const l = document.createElement('label'), c = Object.assign(document.createElement('input'), { type: 'checkbox', checked: !!ev.on[e.id] });
       c.dataset.event = e.id; c.onchange = () => ev.set(e.id, c.checked);
@@ -78,7 +79,8 @@ export class Pause {
     }
     this.el.querySelector('.v2p-main').insertBefore(box, this.el.querySelector('.v2p-off'));
   }
-  pause() { if (this.paused) return; this.paused = true; this.el.hidden = false; this.hint.hidden = true; if (document.pointerLockElement) document.exitPointerLock(); this.el.querySelector('.v2p-go').focus(); }
+  /** bare: frozen without the menu (ui/tutorial.js shows its own screen) */
+  pause(bare) { if (this.paused && !bare) return; this.paused = true; this.el.hidden = !!bare; this.hint.hidden = true; if (document.pointerLockElement) document.exitPointerLock(); if (!bare) this.el.querySelector('.v2p-go').focus(); }
   resume() {
     this.paused = false; this.el.hidden = true; this.hint.hidden = this.locked;
     // Chrome refuses the lock for ~1 s after Esc: ask again once that has passed (the click's user activation still holds), else one more click

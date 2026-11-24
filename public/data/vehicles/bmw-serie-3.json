@@ -1,0 +1,88 @@
+{
+ "id": "bmw-serie-3",
+ "make": "BMW",
+ "model": "Serie 3 (E46)",
+ "archetype": "berlina",
+ "era": [
+  1998,
+  2005
+ ],
+ "kind": "car",
+ "seats": 5,
+ "spawnWeight": 6,
+ "dims": {
+  "length": 4.47,
+  "width": 1.74,
+  "height": 1.415,
+  "wheelbase": 2.725,
+  "track": 1.48,
+  "wheelRadius": 0.315,
+  "wheelWidth": 0.21,
+  "groundClearance": 0.14
+ },
+ "body": {
+  "belt": 0.91,
+  "noseH": 0.73,
+  "tailH": 0.93,
+  "hood": 1.24,
+  "deck": 0.88,
+  "wsRake": 0.68,
+  "rearRake": 0.62,
+  "tumble": 0.17,
+  "windows": {
+   "from": 0.08,
+   "to": 0.93,
+   "panes": 2
+  }
+ },
+ "shape": {
+  "wsCurve": 0.92,
+  "rearCurve": 0.9,
+  "crown": 0.02,
+  "flare": 0.015,
+  "boot": 0.5,
+  "lamp": {
+   "h": [
+    0.5,
+    0.92
+   ],
+   "w": 1.35
+  },
+  "tail": {
+   "h": [
+    0.5,
+    0.92
+   ],
+   "w": 1.1
+  }
+ },
+ "handling": {
+  "gears": 5,
+  "drive": "rwd",
+  "grip": 1.05,
+  "rearGrip": 1,
+  "driftFactor": 0.45,
+  "steerMaxDeg": 36,
+  "steerSpeedFalloff": 0.55,
+  "mass": 1420,
+  "powerKW": 110,
+  "maxSpeedKmh": 220,
+  "accel0to100": 9.2,
+  "brakeDecel": 8.2,
+  "comHeight": 0.52,
+  "suspension": {
+   "stiffness": 36920,
+   "damping": 3323,
+   "travel": 0.17,
+   "rollFactor": 0.7
+  }
+ },
+ "palette": [
+  "#1d1f22",
+  "#9aa1a6",
+  "#20324f",
+  "#c9ccce",
+  "#f1efe6",
+  "#6b1420"
+ ]
+}

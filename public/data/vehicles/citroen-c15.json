@@ -1,0 +1,83 @@
+{
+ "id": "citroen-c15",
+ "make": "Citroën",
+ "model": "C15",
+ "archetype": "furgoneta",
+ "era": [
+  1985,
+  2005
+ ],
+ "kind": "car",
+ "seats": 2,
+ "spawnWeight": 8,
+ "dims": {
+  "length": 3.995,
+  "width": 1.635,
+  "height": 1.8,
+  "wheelbase": 2.72,
+  "track": 1.38,
+  "wheelRadius": 0.285,
+  "wheelWidth": 0.165,
+  "groundClearance": 0.18
+ },
+ "body": {
+  "belt": 0.95,
+  "noseH": 0.76,
+  "tailH": 0.95,
+  "hood": 0.86,
+  "deck": 0,
+  "wsRake": 0.42,
+  "rearRake": 0.02,
+  "tumble": 0.08,
+  "windows": {
+   "from": 0.72,
+   "to": 0.97,
+   "panes": 1
+  }
+ },
+ "shape": {
+  "rearGlass": false,
+  "lamp": {
+   "h": [
+    0.5,
+    0.85
+   ],
+   "w": 0.95
+  },
+  "tail": {
+   "h": [
+    0.45,
+    1.1
+   ],
+   "w": 0.45
+  }
+ },
+ "handling": {
+  "gears": 5,
+  "drive": "fwd",
+  "grip": 0.88,
+  "rearGrip": 0.84,
+  "driftFactor": 0.35,
+  "steerMaxDeg": 36,
+  "steerSpeedFalloff": 0.55,
+  "mass": 920,
+  "powerKW": 44,
+  "maxSpeedKmh": 130,
+  "accel0to100": 21,
+  "brakeDecel": 7.4,
+  "comHeight": 0.66,
+  "suspension": {
+   "stiffness": 23920,
+   "damping": 2153,
+   "travel": 0.17,
+   "rollFactor": 0.85
+  }
+ },
+ "palette": [
+  "#f2f1ea",
+  "#f2f1ea",
+  "#e6e2d2",
+  "#2e4f8a",
+  "#9c1f22"
+ ]
+}

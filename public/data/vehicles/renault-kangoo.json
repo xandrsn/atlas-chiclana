@@ -1,0 +1,84 @@
+{
+ "id": "renault-kangoo",
+ "make": "Renault",
+ "model": "Kangoo",
+ "archetype": "furgoneta",
+ "era": [
+  1997,
+  2007
+ ],
+ "kind": "car",
+ "seats": 5,
+ "spawnWeight": 7,
+ "dims": {
+  "length": 3.995,
+  "width": 1.665,
+  "height": 1.83,
+  "wheelbase": 2.6,
+  "track": 1.41,
+  "wheelRadius": 0.295,
+  "wheelWidth": 0.185,
+  "groundClearance": 0.17
+ },
+ "body": {
+  "belt": 0.97,
+  "noseH": 0.82,
+  "tailH": 0.97,
+  "hood": 0.66,
+  "deck": 0,
+  "wsRake": 0.6,
+  "rearRake": 0.04,
+  "tumble": 0.06,
+  "windows": {
+   "from": 0.06,
+   "to": 0.97,
+   "panes": 2
+  }
+ },
+ "shape": {
+  "wsCurve": 0.92,
+  "crown": 0.025,
+  "lamp": {
+   "h": [
+    0.42,
+    0.85
+   ],
+   "w": 1.2
+  },
+  "tail": {
+   "h": [
+    0.4,
+    1.2
+   ],
+   "w": 0.5
+  }
+ },
+ "handling": {
+  "gears": 5,
+  "drive": "fwd",
+  "grip": 0.92,
+  "rearGrip": 0.87,
+  "driftFactor": 0.35,
+  "steerMaxDeg": 36,
+  "steerSpeedFalloff": 0.55,
+  "mass": 1100,
+  "powerKW": 55,
+  "maxSpeedKmh": 155,
+  "accel0to100": 14.7,
+  "brakeDecel": 7.4,
+  "comHeight": 0.67,
+  "suspension": {
+   "stiffness": 28600,
+   "damping": 2574,
+   "travel": 0.17,
+   "rollFactor": 0.85
+  }
+ },
+ "palette": [
+  "#f2f1ea",
+  "#f2f1ea",
+  "#e6e2d2",
+  "#2e4f8a",
+  "#9c1f22"
+ ]
+}

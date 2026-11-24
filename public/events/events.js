@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { Builder, rng, pick } from '../lowpoly.js';
 import { Crowd } from '../peds/crowd.js';
+import { sunLit } from '../render/shadow.js';
 
 const D2R = Math.PI / 180, R = 6378137, BUDGET = 6, KEY = 'v2.events', V3 = THREE.Vector3;
 const store = (v) => { try { return v === undefined ? localStorage.getItem(KEY) : localStorage.setItem(KEY, v); } catch { return null; } };
@@ -52,6 +53,7 @@ if (kd > 0.5) {
   else transformed = aPivot + rotA(position - aPivot, vec3(0.0, 1.0, 0.0), uT * 0.7);
 }`).replace('#include <color_vertex>', `#include <color_vertex>
   if (aBone > 9.5) vColor *= mix(vec3(1.0), uInv * 1.25, uGlow);`);
+    sunLit(m, s);
   };
   return m;
 }
